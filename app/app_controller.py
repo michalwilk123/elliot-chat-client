@@ -1,19 +1,31 @@
-from .user.current_user import CurrentUserData
-from .cli import utilities
+from .user_state import UserState
+from .cli import utilities, chat
 from .config import MainMenuOptions
-from .chat.chat_manager import ChatManager
-from .database.db_controller import 
+from .database.db_controller import DatabaseController
+from .chat.chat_controller import ChatController
 
 class AppController:
-    def __init__(self, state:CurrentUserData):
-        self.__user_data = state
+    __slots__ = '__user_state', '__db_controller', '__chat_controller'
+
+    def __init__(self):
         utilities.startup()
-        self.login, self.password = utilities.get_credentials()
+        login, password = utilities.get_credentials()
+
+        self.__user_state = UserState(login, password)
+        self.__db_controller = DatabaseController(login, password)
+        self.__chat_controller = ChatController(self.__user_state.login)
+
+        self.__user_state.user_id = self.__db_controller.get_user_id()
+        self.__chat_controller.establish_connection() # TODO: can await
 
     
-    @staticmethod
-    def choose_reciever():
-        pass
+    def choose_reciever(self) -> str:
+        """choosing contact to have chat with
+        Returns:
+            str: chosen contact login
+        """
+        contacts = self.__db_controller.get_user_contacts()
+        return contacts[chat.choose_contact(contacts)]
 
 
     def start(self):
@@ -21,11 +33,8 @@ class AppController:
             option = utilities.get_menu_option()
 
             if option == MainMenuOptions.MESSAGE:
-                self.reciever = AppController.choose_reciever()
-                chat_manager = ChatManager()
-                chat_manager.start()
-                # we get rid of the client immediately!!
-                del chat_manager
+                reciever = self.choose_reciever()
+                self.__chat_controller.start_chat(reciever)
             elif option == MainMenuOptions.ADD_FRIEND:
                 pass
             elif option == MainMenuOptions.CHANGE_CREDENTIALS:
@@ -33,6 +42,8 @@ class AppController:
             elif option == MainMenuOptions.REMOVE_ACCOUNT:
                 pass
             elif option == MainMenuOptions.EXIT:
-                pass
+                print("bye")
+                break
             else:
                 raise RuntimeError("This option currently is not implemented")
+        print("cleanup")

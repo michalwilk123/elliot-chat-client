@@ -1,7 +1,6 @@
 """
-Handling user input
+Handling user input, ALL FUNCTIONS DO NOT CHANGE STATE!!!
 """
-from __future__ import annotations
 import colorama
 from getpass import getpass
 from app.config import MainMenuOptions
