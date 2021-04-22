@@ -9,14 +9,14 @@ class AppController:
 
     def __init__(self):
         utilities.startup()
-        login, password = utilities.get_credentials()
+        # login, password = utilities.get_credentials()
+        login, password = "admin", 'passw'
+
 
         self.__user_state = UserState(login, password)
-        self.__db_controller = DatabaseController(login, password)
-        self.__chat_controller = ChatController(self.__user_state.login)
+        self.__db_controller = DatabaseController(self.__user_state)
 
-        self.__user_state.user_id = self.__db_controller.get_user_id()
-        self.__chat_controller.establish_connection() # TODO: can await
+        self.__db_controller.update_user_id()
 
     
     def choose_reciever(self) -> str:
@@ -30,11 +30,18 @@ class AppController:
 
     def start(self):
         while True:
-            option = utilities.get_menu_option()
+            # option = utilities.get_menu_option()
+            option = MainMenuOptions.MESSAGE
 
             if option == MainMenuOptions.MESSAGE:
-                reciever = self.choose_reciever()
-                self.__chat_controller.start_chat(reciever)
+                # reciever = self.choose_reciever()
+                reciever = 'Mark'
+                self.__chat_controller = ChatController(
+                    self.__user_state, 
+                    reciever,
+                )
+
+                self.__chat_controller.start()
             elif option == MainMenuOptions.ADD_FRIEND:
                 pass
             elif option == MainMenuOptions.CHANGE_CREDENTIALS:

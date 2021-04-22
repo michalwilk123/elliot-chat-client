@@ -1,15 +1,95 @@
+from app.api.websocket_controller import WebSocketController
+from .message import Message
+from app.user_state import UserState
+import asyncio
+import aioconsole
+from datetime import datetime
 
 class ChatController:
-    def __init__(self, user_username:str):
-        pass
+    def __init__(self, user_state:UserState, reciever:str):
+        self.__websocket_controller = WebSocketController(user_state.user_id, reciever)
+        self.reciever = reciever
+        self.user_state = user_state
 
 
-    def establish_connection(self):
-        """
-        Test if connection with the server exists
-        """
-        print("connecting")
+    @staticmethod
+    def _display_message(message:Message, pretty:bool=True):
+        if message.body == '':
+            pass 
+        elif pretty:
+            print(f"{message.sender}  {message.time_stamp} - {message.body}")
+        else:
+            print(f"FFF{message.time_stamp} <{message.sender}> {message.body}")
+
+    @staticmethod
+    def get_timestamp() -> str:
+        now = datetime.now()
+        return now.strftime('%H:%M:%S')
+
+    def start(self):
+        asyncio.run(self.run_workers())
+
+    
+    async def run_workers(self):
+        # asyncio.queue needs an event_loop so we declare it right
+        # here, rather than in constructor
+        self.messageQueue =asyncio.Queue()
+        await self.__websocket_controller.establish_connection()
+
+        ws_task = asyncio.create_task(self.websocket_worker())
+        ui_task = asyncio.create_task(self.user_input_worker())
+
+        # whole chat is alive till the user chooses to end it
+        await ui_task
+        ws_task.cancel()
+        await self.__websocket_controller.close_connection()
+        self.messageQueue.task_done()
+
+        asyncio.gather(ws_task, ui_task, return_exceptions=True)
 
 
-    def start_chat(self, reciever:str):
-        print("started chat with user: ", reciever)
+    async def websocket_worker(self):
+        while True:
+            message = await self.__websocket_controller.get_message()
+            await self.messageQueue.put(Message(
+                self.reciever,
+                ChatController.get_timestamp(),
+                message
+            ))
+
+
+    async def user_input_worker(self):
+        end = False
+        erase = '\x1b[1A\x1b[2K'
+
+        while True:
+            while not self.messageQueue.empty():
+                vis_message = await self.messageQueue.get()
+                ChatController._display_message(vis_message)
+            
+            if end:
+                print(f'Ending chat with user { self.reciever }')
+                break
+            
+            # we check if ctrl+c is pressed, if yes we end the chat service
+            try:
+                in_message = await aioconsole.ainput("")
+                # we are erasing raw input text the user has just made
+                print(erase, end="")
+            except EOFError:
+                end = True
+                continue
+            
+            if in_message != '':
+                # sending raw message to the ws controller to be send by
+                # the websocket to the end reciever
+                await self.__websocket_controller.send_message(in_message)
+
+                # we put user message on the screen 
+                # we can only access the screen by the message queue
+                # so we put it here
+                await self.messageQueue.put(Message(
+                    self.user_state.login,
+                    ChatController.get_timestamp(),
+                    in_message
+                ))
