@@ -1,0 +1,1 @@
+def elo(): return 12
