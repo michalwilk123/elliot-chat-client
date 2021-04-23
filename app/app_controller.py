@@ -42,6 +42,9 @@ class AppController:
                 )
 
                 self.__chat_controller.start()
+                del self.__chat_controller
+                from time import sleep
+                sleep(2)
             elif option == MainMenuOptions.ADD_FRIEND:
                 pass
             elif option == MainMenuOptions.CHANGE_CREDENTIALS:

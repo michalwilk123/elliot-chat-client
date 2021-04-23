@@ -9,6 +9,7 @@ colorama = "*"
 websockets = "*"
 requests = "*"
 simple-term-menu = "*"
+aioconsole = "*"
 
 [dev-packages]
 

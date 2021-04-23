@@ -3,4 +3,5 @@ ENTRY POINT FOR TESTING AND DEBUGGING !!!
 """
 
 if __name__ == '__main__':
-    import app
+    from app.main import main
+    main()
