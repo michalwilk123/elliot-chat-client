@@ -33,7 +33,9 @@ class ChatController:
         # asyncio.queue needs an event_loop so we declare it right
         # here, rather than in constructor
         self.messageQueue =asyncio.Queue()
-        await self._websocket_controller.establish_connection()
+
+        # this message must be blocking !!!
+        self._websocket_controller.establish_connection()
 
         ws_task = asyncio.create_task(self.websocket_worker())
         ui_task = asyncio.create_task(self.user_input_worker())
