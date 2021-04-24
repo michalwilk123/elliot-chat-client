@@ -18,7 +18,7 @@ async def test_websocket_worker(mocker):
     state = UserState("alice", "password")
     chat_controller = ChatController(state, "bob")
 
-    chat_controller.messageQueue = asyncio.Queue()
+    chat_controller.messageQueue = asyncio.Queue(maxsize=1)
 
     async def get_message_side_effect():
         return "Message1234"
