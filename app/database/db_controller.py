@@ -18,31 +18,37 @@ class DatabaseController:
         if not self.tables_exist():
             self.create_tables()
 
+    def __del__(self):
+        self.connection.close()
+
     def _reinstall(self):
         """delete and create an empty database
         """
         if os.path.exists(self.DB_PATH):
             os.remove(self.DB_PATH)
+
+        # running constructor to create the database file from scratch 
         self.__init__(DB_PATH=self.DB_PATH)
 
 
     def tables_exist(self) -> bool:
         cur = self.connection.cursor()
 
-        cur.execute(
-            "SELECT * FROM tablename;"
-        )
-        tables = set(cur.fetchall())
-        print(tables)
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = cur.fetchall()
+
         cur.close()
-        return False
+        if tables is None: return False
+
+        tables = set(map(lambda x:x[0], tables))
+        return {"USERS", "CONTACTS"} == tables
 
     def create_tables(self):
         cur = self.connection.cursor()
         with open(TABLE_SCHEMA_PATH, "r") as table_file:
-            cur.executemany(table_file.read())
+            cur.executescript(table_file.read())
         
-        cur.commit()
+        self.connection.commit()
         cur.close()
         
 
@@ -50,26 +56,101 @@ class DatabaseController:
 
     def create_user(self, new_user_state:UserState):
         cur = self.connection.cursor()
-        cur.execute("")
+        cur.execute(
+            "INSERT INTO USERS (login, password) VALUES (?, ?)",
+            (new_user_state.login, new_user_state.password)
+        )
+        self.connection.commit()
         cur.close()
 
-    def user_exists(self, user_state:UserState):
-        ...
+    def user_exists(self, user_state:UserState) -> bool:
+        cur = self.connection.cursor()
+        cur.execute(
+            "SELECT login FROM USERS WHERE login=? AND password=?", 
+            (user_state.login, user_state.password)
+        )
+        res = cur.fetchone()
+        cur.close()
+        return res is not None
 
     def delete_user(self, user_state:UserState):
-        ...
+        if not self.user_exists(user_state):
+            raise Exception("Cannot delete user which does not exist!!")
+
+        cur = self.connection.cursor()
+
+        cur.execute(
+            "DELETE FROM USERS WHERE login=? AND password=?",
+            (user_state.login, user_state.password)
+        )
+        self.connection.commit()
+        cur.close()
+
 
     # Contacts crud operations
 
     def add_contact(self, state:UserState, contactLogin:str):
-        ...
+        if not self.user_exists(state):
+            raise Exception("Cannot add contact to not existing user!!!")
+
+        if state.login == contactLogin:
+            raise Exception("Cannot add self to the contacts!!!")
+
+        cur = self.connection.cursor()
+
+        cur.execute(
+            "INSERT INTO CONTACTS (owner, login) VALUES ( ?, ?)",
+            (state.login, contactLogin)
+        )
+
+        self.connection.commit()
+        cur.close()
 
     def delete_contact(self, user_state:UserState, contactLogin:str):
-        ...
+        if not self.contact_exists(user_state, contactLogin):
+            raise Exception("Cannot delete not existing contact")
 
-    def contact_exists(self, user_state:UserState, contactLogin:str):
-        ...
+        cur = self.connection.cursor()
+        cur.execute(
+            "DELETE FROM CONTACTS WHERE owner=? AND login=?",
+            (user_state.login, contactLogin)
+        )
+        cur.close()
+
+
+    def contact_exists(self, user_state:UserState, contactLogin:str) -> bool:
+        if not self.user_exists(user_state):
+            raise Exception("Cannot check contacts of non-existing user!!!")
+
+        cur = self.connection.cursor()
+        cur.execute(
+            "SELECT * FROM CONTACTS WHERE owner=? AND login=?",
+            (user_state.login, contactLogin)
+        )
+        res = cur.fetchone()
+        cur.close()
+        return res is not None
 
     def get_user_contacts(self, state:UserState) -> List[str]:
-        return
+        if not self.user_exists(state):
+            raise Exception("Cannot get contacts of not existing user!!!")
+
+        cur = self.connection.cursor()
+        cur.execute(
+            "SELECT * FROM CONTACTS WHERE owner=?",
+            (state.login,)
+        )
+        results = cur.fetchall()
+        print(results)
+        cur.close()
+
+        if results is None: return []
+
+        return  list(map(
+            lambda x: x[1],
+            results
+        ))
+        
+
+
     
