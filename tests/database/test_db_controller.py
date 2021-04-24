@@ -27,6 +27,8 @@ def test_should_throw_no_user(db_init):
     with pytest.raises(Exception):
         db_init.db_controller.add_contact(charlie_state, "Carol")
 
+def test_should_run_fine():
+    db_controller = DatabaseController(DB_PATH=TEST_DB_PATH)
 
 def test_should_throw_contact_error(db_init):
     # thow exception when trying to add self to the contact list
@@ -35,7 +37,6 @@ def test_should_throw_contact_error(db_init):
 
 def test_create_user(db_init):
     lee_state = UserState("Lee", "lee_password")
-    db_init.db_controller.create_user(lee_state)
 
     assert db_init.db_controller.user_exists(db_init.alice_state)
     assert not db_init.db_controller.user_exists(lee_state)
