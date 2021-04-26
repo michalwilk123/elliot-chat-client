@@ -12,6 +12,9 @@ simple-term-menu = "*"
 aioconsole = "*"
 black = "*"
 flake8 = "*"
+cryptography = "*"
+pytest-asyncio = "*"
+pytest-mock = "*"
 
 [dev-packages]
 
