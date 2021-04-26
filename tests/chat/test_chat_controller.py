@@ -3,7 +3,6 @@ from app.user_state import UserState
 import re
 import asyncio
 import pytest
-from unittest.mock import AsyncMock
 
 def test_get_timestamp():
     expr = re.search(
