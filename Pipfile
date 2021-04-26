@@ -10,8 +10,13 @@ websockets = "*"
 requests = "*"
 simple-term-menu = "*"
 aioconsole = "*"
+black = "*"
+flake8 = "*"
 
 [dev-packages]
 
 [requires]
 python_version = "3.9"
+
+[pipenv]
+allow_prereleases = true
