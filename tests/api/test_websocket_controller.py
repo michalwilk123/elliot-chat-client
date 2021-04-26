@@ -1,5 +1,9 @@
 from websockets.client import WebSocketClientProtocol
-from app.api.websocket_controller import WebSocketController, NotConnectedToWSHostException, MultipleWSHostClose
+from app.api.websocket_controller import (
+    WebSocketController,
+    NotConnectedToWSHostException,
+    MultipleWSHostClose,
+)
 from app.user_state import UserState
 import pytest
 import asyncio
@@ -8,8 +12,14 @@ import subprocess
 
 @pytest.mark.asyncio
 async def test_establish_connection():
-    # integrity test
-    p = subprocess.Popen(["pipenv", "run", "python", "tests/api/server_example.py"])
+    # integrity test - checking if the client is connectiong to sockets properly
+
+    p = subprocess.Popen(
+        ["pipenv", "run", "python", "tests/api/server_example.py"]
+    )
+
+    # this may cause issues. Server process must be created before
+    # we start the connection
     await asyncio.sleep(1)
     alice_state = UserState("alice", "passw")
     ws_controller = WebSocketController(alice_state, "bob")
@@ -29,8 +39,7 @@ async def test_send_raw_message(mocker):
         message_list.append(body.decode("utf-8"))
 
     mocker.patch(
-        "websockets.WebSocketClientProtocol.send",
-        side_effect=send_side_effect
+        "websockets.WebSocketClientProtocol.send", side_effect=send_side_effect
     )
 
     alice_state = UserState("alice", "passw")
@@ -41,7 +50,7 @@ async def test_send_raw_message(mocker):
     await ws_controller._send_raw_message(raw_message)
     assert message_list[0] == raw_message
 
-    
+
 @pytest.mark.asyncio
 async def test_get_message(mocker):
     toRecieve = ["message1", "message2", "message3"]
@@ -53,8 +62,7 @@ async def test_get_message(mocker):
         return toRecieve.pop()
 
     mocker.patch(
-        "websockets.WebSocketClientProtocol.recv",
-        side_effect=recv_side_effect
+        "websockets.WebSocketClientProtocol.recv", side_effect=recv_side_effect
     )
 
     alice_state = UserState("alice", "passw")
@@ -74,6 +82,7 @@ async def test_should_throw_when_no_connection():
     with pytest.raises(NotConnectedToWSHostException):
         await ws_controller.send_message("test message")
 
+
 @pytest.mark.asyncio
 async def test_should_throw_on_multiple_close(mocker):
     alice_state = UserState("alice", "passw")
@@ -83,15 +92,11 @@ async def test_should_throw_on_multiple_close(mocker):
         return WebSocketClientProtocol()
 
     # mocking connection to the server
-    mocker.patch(
-        "websockets.connect",
-        side_effect=mocked_establish_connection
-    )
+    mocker.patch("websockets.connect", side_effect=mocked_establish_connection)
 
     # mocking closing connection to not have any effect
     mocker.patch(
-        "websockets.WebSocketClientProtocol.close",
-        side_effect=lambda : ...
+        "websockets.WebSocketClientProtocol.close", side_effect=lambda: ...
     )
 
     await ws_controller.establish_connection()

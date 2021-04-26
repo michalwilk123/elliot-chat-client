@@ -4,21 +4,20 @@ from .config import MainMenuOptions
 from .database.db_controller import DatabaseController
 from .chat.chat_controller import ChatController
 
+
 class AppController:
-    __slots__ = '__user_state', '__db_controller', '__chat_controller'
+    __slots__ = "__user_state", "__db_controller", "__chat_controller"
 
     def __init__(self):
         utilities.startup()
         # login, password = utilities.get_credentials()
-        login, password = "admin", 'passw'
-
+        login, password = "admin", "passw"
 
         self.__user_state = UserState(login, password)
         self.__db_controller = DatabaseController(self.__user_state)
 
         self.__db_controller.update_user_id()
 
-    
     def choose_reciever(self) -> str:
         """choosing contact to have chat with
         Returns:
@@ -27,7 +26,6 @@ class AppController:
         contacts = self.__db_controller.get_user_contacts()
         return contacts[chat.choose_contact(contacts)]
 
-
     def start(self):
         while True:
             # option = utilities.get_menu_option()
@@ -35,15 +33,16 @@ class AppController:
 
             if option == MainMenuOptions.MESSAGE:
                 # reciever = self.choose_reciever()
-                reciever = 'Mark'
+                reciever = "Mark"
                 self.__chat_controller = ChatController(
-                    self.__user_state, 
+                    self.__user_state,
                     reciever,
                 )
 
                 self.__chat_controller.start()
                 del self.__chat_controller
                 from time import sleep
+
                 sleep(2)
             elif option == MainMenuOptions.ADD_FRIEND:
                 pass

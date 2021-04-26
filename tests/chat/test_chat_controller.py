@@ -1,16 +1,16 @@
 from app.chat.chat_controller import ChatController
-from app.user_state import UserState 
+from app.user_state import UserState
 import re
 import asyncio
 import pytest
 
+
 def test_get_timestamp():
     expr = re.search(
-        "[0-9]{2}:[0-9]{2}:[0-9]{2}",
-        ChatController.get_timestamp()
+        "[0-9]{2}:[0-9]{2}:[0-9]{2}", ChatController.get_timestamp()
     )
     assert expr is not None
-    
+
 
 @pytest.mark.asyncio
 async def test_websocket_worker(mocker):
@@ -23,18 +23,14 @@ async def test_websocket_worker(mocker):
         return "Message1234"
 
     mocker.patch(
-        'app.api.websocket_controller.WebSocketController.get_message',
-        side_effect = get_message_side_effect
+        "app.api.websocket_controller.WebSocketController.get_message",
+        side_effect=get_message_side_effect,
     )
 
     task = asyncio.create_task(chat_controller.websocket_worker())
-    result = await asyncio.wait_for(
-        chat_controller.messageQueue.get(), 2
-    )
+    result = await asyncio.wait_for(chat_controller.messageQueue.get(), 2)
     task.cancel()
     chat_controller.messageQueue.task_done()
-    
-    assert result.sender == 'bob'
-    assert result.body == 'Message1234'
 
-
+    assert result.sender == "bob"
+    assert result.body == "Message1234"

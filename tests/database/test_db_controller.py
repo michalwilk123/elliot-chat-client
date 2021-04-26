@@ -3,13 +3,14 @@ from app.user_state import UserState
 import pytest
 import types
 
-TEST_DB_PATH = 'db_data_test/user.db'
+TEST_DB_PATH = "db_data_test/user.db"
+
 
 @pytest.fixture(autouse=True)
 def db_init():
     """
     Reseting the database before every test.
-    Also declaring new path for the controller to not override 
+    Also declaring new path for the controller to not override
     current data
     """
     args = types.SimpleNamespace()
@@ -27,13 +28,16 @@ def test_should_throw_no_user(db_init):
     with pytest.raises(Exception):
         db_init.db_controller.add_contact(charlie_state, "Carol")
 
+
 def test_should_run_fine():
     db_controller = DatabaseController(DB_PATH=TEST_DB_PATH)
+
 
 def test_should_throw_contact_error(db_init):
     # thow exception when trying to add self to the contact list
     with pytest.raises(Exception):
         db_init.db_controller.add_contact(db_init.alice_state, "Alice")
+
 
 def test_create_user(db_init):
     lee_state = UserState("Lee", "lee_password")
@@ -46,16 +50,20 @@ def test_delete_user(db_init):
     db_init.db_controller.delete_user(db_init.alice_state)
     assert not db_init.db_controller.user_exists(db_init.alice_state)
 
+
 def test_should_throw_when_user_does_not_exists(db_init):
     lee_state = UserState("Lee", "lee_password")
     with pytest.raises(Exception):
         db_init.db_controller.delete_user(lee_state)
 
+
 def test_add_contact(db_init):
     db_init.db_controller.add_contact(db_init.alice_state, "Bob")
 
     assert db_init.db_controller.contact_exists(db_init.alice_state, "Bob")
-    assert not db_init.db_controller.contact_exists(db_init.alice_state, "Oscar")
+    assert not db_init.db_controller.contact_exists(
+        db_init.alice_state, "Oscar"
+    )
 
 
 def test_get_contacts(db_init):
