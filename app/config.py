@@ -1,11 +1,11 @@
 from enum import Enum
 from pathlib import Path
 
-SERVER_URL = "127.0.0.1:5000"
+SERVER_URL = "ws://localhost:8001"
 TABLE_SCHEMA_PATH = Path("app") / "database" / "schema.sql"
 
 
-# usunąć to na dole
+# usunąć
 USER_DATA_PATH = "app/database/data.db <- look at this duud"
 
 class MainMenuOptions(Enum):

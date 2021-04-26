@@ -34,8 +34,8 @@ class ChatController:
         # here, rather than in constructor
         self.messageQueue =asyncio.Queue()
 
-        # this message must be blocking !!!
-        self._websocket_controller.establish_connection()
+        await self._websocket_controller.establish_connection()
+        
 
         ws_task = asyncio.create_task(self.websocket_worker())
         ui_task = asyncio.create_task(self.user_input_worker())
@@ -50,7 +50,6 @@ class ChatController:
 
 
     async def websocket_worker(self):
-        print('hello')
         while True:
             message = await self._websocket_controller.get_message()
             await self.messageQueue.put(Message(
