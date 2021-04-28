@@ -1,13 +1,12 @@
 from typing import List
 from app.user_state import UserState
-from app.config import TABLE_SCHEMA_PATH
+from app.config import TABLE_SCHEMA_PATH, DEFAULT_DB_PATH
 import sqlite3
 import os
 
 
 class DatabaseController:
-    # TODO: IMPLEMENT THIS CLASS!!!
-    def __init__(self, DB_PATH="db_data/user.db"):
+    def __init__(self, DB_PATH:str=DEFAULT_DB_PATH):
         self.DB_PATH = DB_PATH
         try:
             self.connection = sqlite3.connect(DB_PATH)
