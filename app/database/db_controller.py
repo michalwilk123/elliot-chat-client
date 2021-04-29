@@ -1,10 +1,9 @@
 from typing import List
 from app.user_state import UserState
 from app.config import TABLE_SCHEMA_PATH, DEFAULT_DB_PATH
+from app.chat.crypto.crypto_utils import create_b64_from_key, create_key_from_b64
 import sqlite3
 import os
-import pickle
-import codecs
 
 
 class DatabaseControllerException(Exception):
@@ -194,41 +193,35 @@ class DatabaseController:
         )
         result = cur.fetchone()
 
-        pickled_id_key = result[0]
-        pickled_signed_pre_key = result[1]
+        b64_id_key = result[0]
+        b64_signed_pre_key = result[1]
 
-        raw_id_key = pickle.loads(
-            codecs.decode(pickled_id_key.encode(), "base64")
-        )
-        raw_signed_pre_key = pickle.loads(
-            codecs.decode(pickled_signed_pre_key.encode(), "base64")
-        )
+        id_key_obj = create_key_from_b64(b64_id_key)
+        signed_pre_key_obj = create_key_from_b64(b64_signed_pre_key)
 
-        user_state.id_key = pickled_id_key
-        user_state.id_key_pickled = pickled_signed_pre_key
-        user_state.signed_pre_key = raw_id_key
-        user_state.signed_pre_key_pickled = raw_signed_pre_key
+
+        user_state.id_key = id_key_obj
+        user_state.id_key_b64 = b64_id_key
+        user_state.signed_pre_key = signed_pre_key_obj
+        user_state.signed_pre_key_b64 = b64_signed_pre_key
+
 
     def update_user_keys(self, user_state: UserState) -> None:
-        if user_state.id_key is None and user_state.signed_pre_key is None:
+        if not hasattr(user_state, "id_key") and not hasattr(user_state, "signed_pre_key"):
             raise DatabaseControllerException(
-                "why would you run this method if you dont do anything?"
+                "why would you run this method if you dont do anything? *thinking emoji*"
             )
 
         cur = self.connection.cursor()
 
-        if user_state.id_key is None:
-            id_key_pickled = codecs.encode(
-                pickle.dumps(user_state.id_key), "base64"
-            ).decode()
-            cur.execute("UPDATE USERS SET id_key=?", (id_key_pickled,))
+        if hasattr(user_state, "id_key"):
+            id_key_b64 = create_b64_from_key(user_state.id_key)
+            cur.execute("UPDATE USERS SET id_key=?", (id_key_b64,))
 
-        if user_state.signed_pre_key is None:
-            signed_pre_key_pickled = codecs.encode(
-                pickle.dumps(user_state.signed_pre_key), "base64"
-            ).decode()
+        if hasattr(user_state, "signed_pre_key"):
+            signed_pre_key_b64 = create_b64_from_key(user_state.signed_pre_key)
             cur.execute(
-                "UPDATE USERS SET signed_pre_key=?", (signed_pre_key_pickled,)
+                "UPDATE USERS SET signed_pre_key=?", (signed_pre_key_b64,)
             )
 
         self.connection.commit()

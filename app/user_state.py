@@ -21,15 +21,15 @@ class UserState:
         "_password",
         "_id_key",
         "_signed_pre_key",
-        "_id_key_pickled",
-        "_signed_pre_key_pickled",
+        "_id_key_b64",
+        "_signed_pre_key_b64",
     )
 
     def __init__(self, login: str, password: str):
         self._login: str = login
         self._password: str = password
-        self._id_key_pickled: str = ""
-        self._signed_pre_key_pickled: str = ""
+        self._id_key_b64: str = ""
+        self._signed_pre_key_b64: str = ""
 
     @property
     def login(self) -> str:
@@ -48,11 +48,11 @@ class UserState:
         return self._signed_pre_key
 
     @property
-    def id_key_pickled(self) -> str:
+    def id_key_b64(self) -> str:
         return self._id_key_pickled
 
     @property
-    def signed_pre_key_pickled(self) -> str:
+    def signed_pre_key_b64(self) -> str:
         return self._signed_pre_key_pickled
 
     # Setters - had to invoke those methods for debugging purposes
@@ -60,7 +60,7 @@ class UserState:
     @login.setter
     def login(self, login):
         raise UserStateException(
-            "Modyfying the user login is illegal!!! Instead create new instance of UserState"
+            "Modyfying the user login is illegal!!! Try instead creating new instance of UserState"
         )
 
     @password.setter
@@ -79,14 +79,14 @@ class UserState:
     def signed_pre_key(self, spk_key: X25519PrivateKey):
         self._signed_pre_key = spk_key
 
-    @id_key_pickled.setter
-    def id_key_pickled(self, new_id: str):
+    @id_key_b64.setter
+    def id_key_b64(self, new_id: str):
         """
         Args:
             new_id (str): encoded private keyin base64
         """
         self._id_key_pickled = new_id
 
-    @signed_pre_key_pickled.setter
-    def signed_pre_key_pickled(self, spk_key: str):
+    @signed_pre_key_b64.setter
+    def signed_pre_key_b64(self, spk_key: str):
         self._signed_pre_key_pickled = spk_key
