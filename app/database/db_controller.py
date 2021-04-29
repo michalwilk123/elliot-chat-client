@@ -6,11 +6,13 @@ import os
 import pickle
 import codecs
 
+
 class DatabaseControllerException(Exception):
     ...
 
+
 class DatabaseController:
-    def __init__(self, DB_PATH:str=DEFAULT_DB_PATH):
+    def __init__(self, DB_PATH: str = DEFAULT_DB_PATH):
         self.DB_PATH = DB_PATH
         try:
             self.connection = sqlite3.connect(DB_PATH)
@@ -78,7 +80,9 @@ class DatabaseController:
 
     def delete_user(self, user_state: UserState):
         if not self.user_exists(user_state):
-            raise DatabaseControllerException("Cannot delete user which does not exist!!")
+            raise DatabaseControllerException(
+                "Cannot delete user which does not exist!!"
+            )
 
         cur = self.connection.cursor()
 
@@ -93,10 +97,14 @@ class DatabaseController:
 
     def add_contact(self, state: UserState, contactLogin: str):
         if not self.user_exists(state):
-            raise DatabaseControllerException("Cannot add contact to not existing user!!!")
+            raise DatabaseControllerException(
+                "Cannot add contact to not existing user!!!"
+            )
 
         if state.login == contactLogin:
-            raise DatabaseControllerException("Cannot add self to the contacts!!!")
+            raise DatabaseControllerException(
+                "Cannot add self to the contacts!!!"
+            )
 
         cur = self.connection.cursor()
 
@@ -110,7 +118,9 @@ class DatabaseController:
 
     def delete_contact(self, user_state: UserState, contactLogin: str):
         if not self.contact_exists(user_state, contactLogin):
-            raise DatabaseControllerException("Cannot delete not existing contact")
+            raise DatabaseControllerException(
+                "Cannot delete not existing contact"
+            )
 
         cur = self.connection.cursor()
         cur.execute(
@@ -122,7 +132,9 @@ class DatabaseController:
 
     def contact_exists(self, user_state: UserState, contactLogin: str) -> bool:
         if not self.user_exists(user_state):
-            raise DatabaseControllerException("Cannot check contacts of non-existing user!!!")
+            raise DatabaseControllerException(
+                "Cannot check contacts of non-existing user!!!"
+            )
 
         cur = self.connection.cursor()
         cur.execute(
@@ -135,7 +147,9 @@ class DatabaseController:
 
     def get_user_contacts(self, state: UserState) -> List[str]:
         if not self.user_exists(state):
-            raise DatabaseControllerException("Cannot get contacts of not existing user!!!")
+            raise DatabaseControllerException(
+                "Cannot get contacts of not existing user!!!"
+            )
 
         cur = self.connection.cursor()
         cur.execute("SELECT login FROM CONTACTS WHERE owner=?", (state.login,))
@@ -147,33 +161,36 @@ class DatabaseController:
             return []
 
         return list(map(lambda x: x[0], results))
-    
 
-    def update_user_password(self, password:str):
+    def update_user_password(self, password: str):
         # TODO: create test case for this
         ...
 
     # --- Crypto stuff ---
 
-    def get_user_send_ratchet(self, user:str, partner:str):
+    def get_user_send_ratchet(self, user: str, partner: str):
         return
 
-    def get_user_recv_ratchet(self, user:str, partner:str):
+    def get_user_recv_ratchet(self, user: str, partner: str):
         return
 
-    
-    def ratchets_correct(self, user:str, partner:str) -> bool:
+    def ratchets_correct(self, user: str, partner: str) -> bool:
         return True
-    
-    def load_user_keys(self, user_state:UserState) -> None:
+
+    def load_user_keys(self, user_state: UserState) -> None:
         if not self.user_exists(user_state):
-            raise DatabaseControllerException("Cannot load keys from not existing user")
+            raise DatabaseControllerException(
+                "Cannot load keys from not existing user"
+            )
 
         cur = self.connection.cursor()
 
         cur.execute(
             "SELECT id_key, signed_pre_key FROM USERS WHERE login=? AND password=?",
-            (user_state.login, user_state.password,)
+            (
+                user_state.login,
+                user_state.password,
+            ),
         )
         result = cur.fetchone()
 
@@ -181,36 +198,38 @@ class DatabaseController:
         pickled_signed_pre_key = result[1]
 
         raw_id_key = pickle.loads(
-            codecs.decode(pickled_id_key.encode(), "base64"))
+            codecs.decode(pickled_id_key.encode(), "base64")
+        )
         raw_signed_pre_key = pickle.loads(
-            codecs.decode(pickled_signed_pre_key.encode(), "base64"))
-        
+            codecs.decode(pickled_signed_pre_key.encode(), "base64")
+        )
+
         user_state.id_key = pickled_id_key
         user_state.id_key_pickled = pickled_signed_pre_key
         user_state.signed_pre_key = raw_id_key
         user_state.signed_pre_key_pickled = raw_signed_pre_key
 
-        
-    def update_user_keys(self, user_state:UserState) -> None:
+    def update_user_keys(self, user_state: UserState) -> None:
         if user_state.id_key is None and user_state.signed_pre_key is None:
-            raise DatabaseControllerException("why would you run this method if you dont do anything?")
+            raise DatabaseControllerException(
+                "why would you run this method if you dont do anything?"
+            )
 
         cur = self.connection.cursor()
 
         if user_state.id_key is None:
             id_key_pickled = codecs.encode(
-                pickle.dumps(user_state.id_key), "base64").decode()
-            cur.execute(
-                "UPDATE USERS SET id_key=?", (id_key_pickled,)
-            )
+                pickle.dumps(user_state.id_key), "base64"
+            ).decode()
+            cur.execute("UPDATE USERS SET id_key=?", (id_key_pickled,))
 
         if user_state.signed_pre_key is None:
             signed_pre_key_pickled = codecs.encode(
-                pickle.dumps(user_state.signed_pre_key), "base64").decode()
+                pickle.dumps(user_state.signed_pre_key), "base64"
+            ).decode()
             cur.execute(
                 "UPDATE USERS SET signed_pre_key=?", (signed_pre_key_pickled,)
             )
 
         self.connection.commit()
         cur.close()
-

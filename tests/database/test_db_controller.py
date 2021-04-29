@@ -1,4 +1,7 @@
-from app.database.db_controller import DatabaseController, DatabaseControllerException
+from app.database.db_controller import (
+    DatabaseController,
+    DatabaseControllerException,
+)
 from app.user_state import UserState
 import pytest
 import types

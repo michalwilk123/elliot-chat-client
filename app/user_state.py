@@ -4,6 +4,7 @@ from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 class UserStateException(Exception):
     ...
 
+
 class UserState:
     """
     Current informations about the app state.
@@ -11,16 +12,24 @@ class UserState:
     Using slots because atributes in this class will be accessed
     quite frequently
     """
+
     # __slots__ = "login", "password", "id_key", "signed_pre_key", "id_key_pickled", "signed_pre_key_pickled"\
     #     "_login", "_password", "_id_key", "_signed_pre_key", "_id_key_pickled", "_signed_pre_key_pickled"
 
-    __slots__ = "_login", "_password", "_id_key", "_signed_pre_key", "_id_key_pickled", "_signed_pre_key_pickled"
+    __slots__ = (
+        "_login",
+        "_password",
+        "_id_key",
+        "_signed_pre_key",
+        "_id_key_pickled",
+        "_signed_pre_key_pickled",
+    )
 
     def __init__(self, login: str, password: str):
-        self._login:str = login
-        self._password:str = password
-        self._id_key_pickled:str = ""
-        self._signed_pre_key_pickled:str = ""
+        self._login: str = login
+        self._password: str = password
+        self._id_key_pickled: str = ""
+        self._signed_pre_key_pickled: str = ""
 
     @property
     def login(self) -> str:
@@ -46,19 +55,20 @@ class UserState:
     def signed_pre_key_pickled(self) -> str:
         return self._signed_pre_key_pickled
 
-
     # Setters - had to invoke those methods for debugging purposes
 
     @login.setter
     def login(self, login):
-        raise UserStateException("Modyfying the user login is illegal!!! Instead create new instance of UserState")
+        raise UserStateException(
+            "Modyfying the user login is illegal!!! Instead create new instance of UserState"
+        )
 
     @password.setter
-    def password(self, password:str):
+    def password(self, password: str):
         self._password = password
 
     @id_key.setter
-    def id_key(self, new_id:X25519PrivateKey):
+    def id_key(self, new_id: X25519PrivateKey):
         """
         Args:
             new_id (str): encoded private keyin base64
@@ -66,11 +76,11 @@ class UserState:
         self._id_key = new_id
 
     @signed_pre_key.setter
-    def signed_pre_key(self, spk_key:X25519PrivateKey):
+    def signed_pre_key(self, spk_key: X25519PrivateKey):
         self._signed_pre_key = spk_key
 
     @id_key_pickled.setter
-    def id_key_pickled(self, new_id:str):
+    def id_key_pickled(self, new_id: str):
         """
         Args:
             new_id (str): encoded private keyin base64
@@ -78,5 +88,5 @@ class UserState:
         self._id_key_pickled = new_id
 
     @signed_pre_key_pickled.setter
-    def signed_pre_key_pickled(self, spk_key:str):
+    def signed_pre_key_pickled(self, spk_key: str):
         self._signed_pre_key_pickled = spk_key

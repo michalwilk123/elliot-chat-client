@@ -3,8 +3,16 @@ from app.database.db_controller import DatabaseController
 from .crypto_utils import generate_private_key, hkdf
 from app.config import DEFAULT_DB_PATH
 
+
 class Guest:
-    def __init__(self, user_state:UserState, /, id_key=None, DB_PATH:str=DEFAULT_DB_PATH, load_from_db:bool=False):
+    def __init__(
+        self,
+        user_state: UserState,
+        /,
+        id_key=None,
+        DB_PATH: str = DEFAULT_DB_PATH,
+        load_from_db: bool = False,
+    ):
         """
         This instance is created per user add.
         Creating ephemeral key:
@@ -32,14 +40,15 @@ class Guest:
         db_controller.load_user_keys(self.user_state)
         del db_controller
 
-    
     def get_public_id_key(self):
         return self.id_key.generate()
 
     def get_public_ephemeral_key(self):
         return self.ephemeral_key.generate()
 
-    def create_shared_key_X3DH(self, id_key, signed_prekey, one_time_key) -> None:
+    def create_shared_key_X3DH(
+        self, id_key, signed_prekey, one_time_key
+    ) -> None:
 
         """the 4 diffie hellman key exchange
         from the perspective of someone who is an
@@ -58,5 +67,5 @@ class Guest:
             return self.shared_key
         return None
 
-    def choose_external_otk(self, login:str):
+    def choose_external_otk(self, login: str):
         return 0, generate_private_key()
