@@ -1,5 +1,5 @@
 """ Tests related with creation of the chat beetween two users
-You will find here tests related with the 4 Diffie-Hellman
+You will find here tests related with the 3 Diffie-Hellman
 handshake. 
 You will not find here tests related with server connection
 and server confirmation.

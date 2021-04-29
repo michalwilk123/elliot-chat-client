@@ -1,7 +1,7 @@
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
 from app.user_state import UserState
 from app.database.db_controller import DatabaseController
-from .crypto_utils import generate_private_key, hkdf
+from .crypto_utils import generate_DH, hkdf
 from app.config import DEFAULT_DB_PATH
 
 
@@ -25,13 +25,13 @@ class Guest:
             self.load()
 
         if not load_from_db and self.user_state.id_key is None:
-            self.user_state.id_key = generate_private_key()
+            self.user_state.id_key = generate_DH()
 
         if not load_from_db and self.user_state.signed_pre_key is None:
-            self.user_state.signed_pre_key = generate_private_key()
+            self.user_state.signed_pre_key = generate_DH()
 
         # ephemeral key is ALWAYS reacreated per contact add
-        self.ephemeral_key = generate_private_key()
+        self.ephemeral_key = generate_DH()
 
     def save(self):
         db_controller = DatabaseController(DB_PATH=self.db_path)
@@ -56,7 +56,7 @@ class Guest:
         one_time_key: X25519PublicKey,
     ) -> None:
 
-        """the 4 diffie hellman key exchange
+        """the 3 diffie hellman key exchange
         from the perspective of someone who is an
         initiator of the conversation
         """
@@ -66,7 +66,7 @@ class Guest:
         dh4 = self.ephemeral_key.exchange(one_time_key)
 
         # the shared key is KDF(DH1||DH2||DH3||DH4)
-        self.shared_key = hkdf(dh1 + dh2 + dh3 + dh4, 32)
+        self.shared_key = hkdf(dh1 + dh2 + dh3 + dh4)
 
     def get_shared_key(self):
         if hasattr(self, "shared_key"):

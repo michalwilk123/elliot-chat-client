@@ -1,6 +1,6 @@
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
 from app.user_state import UserState
-from .crypto_utils import generate_private_key, hkdf
+from .crypto_utils import generate_DH, hkdf
 from app.config import DEFAULT_DB_PATH
 from app.database.db_controller import DatabaseController
 
@@ -26,10 +26,10 @@ class Establisher:
             return
 
         if id_key is None:
-            user_state.id_key = generate_private_key()
+            user_state.id_key = generate_DH()
 
         if signed_pre_key is None:
-            user_state.signed_pre_key = generate_private_key()
+            user_state.signed_pre_key = generate_DH()
 
         self.user_state = user_state
 
@@ -41,7 +41,7 @@ class Establisher:
         """The one time key exists for very limited time
         so we DO NOT save in the user_state class
         """
-        self.one_time_key = generate_private_key()
+        self.one_time_key = generate_DH()
         # TODO: DELETE THE ONE TIME KEY AT THIS MOMENT
 
     def get_shared_key(self):
@@ -68,7 +68,7 @@ class Establisher:
         dh4 = self.one_time_key.exchange(ephemeral_key)
 
         # the shared key is KDF(DH1||DH2||DH3||DH4)
-        self.shared_key = hkdf(dh1 + dh2 + dh3 + dh4, 32)
+        self.shared_key = hkdf(dh1 + dh2 + dh3 + dh4)
 
     def get_public_id_key(self) -> X25519PublicKey:
         return self.user_state.id_key.public_key()
