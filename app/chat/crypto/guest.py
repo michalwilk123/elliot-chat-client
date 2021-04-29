@@ -1,4 +1,5 @@
 from app.user_state import UserState
+from app.database.db_controller import DatabaseController
 from .crypto_utils import generate_private_key, hkdf
 from app.config import DEFAULT_DB_PATH
 
@@ -11,8 +12,10 @@ class Guest:
         self.user_state = user_state
         self.db_path = DB_PATH
 
-        if id_key is None:
-            self.id_key = generate_private_key()
+        if load_from_db:
+            self.load()
+        elif id_key is None:
+            self.user_state.id_key = generate_private_key()
             self.save()
 
         self.id_key = id_key
@@ -20,12 +23,13 @@ class Guest:
         self.ephemeral_key = generate_private_key()
 
     def save(self):
-        from app.database.db_controller import DatabaseController
         db_controller = DatabaseController(self.db_path)
-        db_controller.update_user_keys(
-            self.user_state,
-            id_key=self.id_key
-        )
+        db_controller.update_user_keys(self.user_state)
+        del db_controller
+
+    def load(self):
+        db_controller = DatabaseController(self.db_path)
+        db_controller.load_user_keys(self.user_state)
         del db_controller
 
     
