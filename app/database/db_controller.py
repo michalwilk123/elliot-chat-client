@@ -142,3 +142,20 @@ class DatabaseController:
             return []
 
         return list(map(lambda x: x[1], results))
+
+
+    # --- Crypto stuff ---
+
+    def get_user_send_ratchet(self, user:str, partner:str):
+        return
+
+    def get_user_recv_ratchet(self, user:str, partner:str):
+        return
+
+    
+    def ratchets_correct(self, user:str, partner:str) -> bool:
+        return True
+
+    def update_user_keys(self, user_state:UserState, /, 
+            id_key=None, signed_pre_key=None):
+        print("implement!!")

@@ -12,13 +12,13 @@ class ChatSession:
     def __init__(self, user:str, partner:str, DB_PATH:str=DEFAULT_DB_PATH):
         self.db_controller = DatabaseController(DB_PATH)
         self.user = user
-        if not self.db_controller.ratchets_correct():
+        if not self.db_controller.ratchets_correct(user, partner):
             self.create_ratchets()
             self.save_ratchets()
 
         self.send_ratchet = self.db_controller\
             .get_user_send_ratchet(user, partner)
-        self.recv_ratchet = self.db_controller
+        self.recv_ratchet = self.db_controller\
             .get_user_recv_ratchet(user, partner)
 
 
@@ -29,7 +29,7 @@ class ChatSession:
         Args:
             raw_message (str): [description]
         """
-        ...
+        return ""
 
 
     def decrypt_recieved(self, enc_message:str) -> str:
@@ -43,11 +43,11 @@ class ChatSession:
         Returns:
             str: readable, decrypted message
         """
-        ...
+        return ""
 
 
     def create_ratchets(self):
-        ...
+        return 
 
     def save_ratchets(self):
-        ...
+        return

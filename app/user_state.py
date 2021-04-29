@@ -16,13 +16,3 @@ class UserState:
     @property
     def password(self):
         return self._password
-
-    @property
-    def user_id(self):
-        return self._user_id
-
-    @user_id.setter
-    def user_id(self, uid: str):
-        # this should be called ONLY ONCE!
-        assert hasattr(self, "_user_id") is False
-        self._user_id = uid

@@ -4,6 +4,7 @@ from pathlib import Path
 SERVER_URL = "ws://localhost:8001"
 TABLE_SCHEMA_PATH = str(Path("app") / "database" / "schema.sql")
 DEFAULT_DB_PATH = str(Path("db_data") / "user.db")
+MAX_ONE_TIME_KEYS = 1
 
 # usunąć
 USER_DATA_PATH = "app/database/data.db <- look at this duud"
