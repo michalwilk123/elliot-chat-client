@@ -21,11 +21,11 @@ class Establisher:
         mark_save: bool = False
 
         if id_key is None:
-            id_key = generate_private_key()
+            user_state.id_key = generate_private_key()
             mark_save = True
 
         if signed_pre_key is None:
-            signed_pre_key = generate_private_key()
+            user_state.signed_pre_key = generate_private_key()
             mark_save = True
 
         if mark_save:
@@ -43,7 +43,7 @@ class Establisher:
         so we DO NOT save in the user_state class
         """
         self.one_time_key = generate_private_key()
-        # TODO: DELETE THE ONE TIME KEY AT THIS MOMENT
+        # TODO: DELETE THE ONE TIME KEY AT THAT MOMENT
 
     def get_shared_key(self):
         if hasattr(self, "shared_key"):
