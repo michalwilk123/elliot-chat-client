@@ -1,4 +1,5 @@
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
+from typing import Union
 
 
 class UserStateException(Exception):
@@ -13,9 +14,6 @@ class UserState:
     quite frequently
     """
 
-    # __slots__ = "login", "password", "id_key", "signed_pre_key", "id_key_pickled", "signed_pre_key_pickled"\
-    #     "_login", "_password", "_id_key", "_signed_pre_key", "_id_key_pickled", "_signed_pre_key_pickled"
-
     __slots__ = (
         "_login",
         "_password",
@@ -28,8 +26,10 @@ class UserState:
     def __init__(self, login: str, password: str):
         self._login: str = login
         self._password: str = password
-        self._id_key_b64: str = ""
-        self._signed_pre_key_b64: str = ""
+        self._id_key_b64: bytes = b""
+        self._signed_pre_key_b64: bytes = b""
+        self._id_key: Union[X25519PrivateKey, None] = None
+        self._signed_pre_key: Union[X25519PrivateKey, None] = None
 
     @property
     def login(self) -> str:
@@ -40,27 +40,28 @@ class UserState:
         return self._password
 
     @property
-    def id_key(self) -> X25519PrivateKey:
+    def id_key(self) -> Union[X25519PrivateKey, None]:
         return self._id_key
 
     @property
-    def signed_pre_key(self) -> X25519PrivateKey:
+    def signed_pre_key(self) -> Union[X25519PrivateKey, None]:
         return self._signed_pre_key
 
     @property
-    def id_key_b64(self) -> str:
-        return self._id_key_pickled
+    def id_key_b64(self) -> bytes:
+        return self._id_key_b64
 
     @property
-    def signed_pre_key_b64(self) -> str:
-        return self._signed_pre_key_pickled
+    def signed_pre_key_b64(self) -> bytes:
+        return self._signed_pre_key_b64
 
     # Setters - had to invoke those methods for debugging purposes
 
     @login.setter
     def login(self, login):
         raise UserStateException(
-            "Modyfying the user login is illegal!!! Try instead creating new instance of UserState"
+            "Modyfying the user login is illegal!!! "
+            "Try instead creating new instance of UserState"
         )
 
     @password.setter
@@ -80,13 +81,21 @@ class UserState:
         self._signed_pre_key = spk_key
 
     @id_key_b64.setter
-    def id_key_b64(self, new_id: str):
+    def id_key_b64(self, new_id: bytes):
         """
         Args:
             new_id (str): encoded private keyin base64
         """
-        self._id_key_pickled = new_id
+        self._id_key_b64 = new_id
 
     @signed_pre_key_b64.setter
-    def signed_pre_key_b64(self, spk_key: str):
-        self._signed_pre_key_pickled = spk_key
+    def signed_pre_key_b64(self, spk_key: bytes):
+        self._signed_pre_key_b64 = spk_key
+
+    def __repr__(self) -> str:
+        """NEVER DO THIS!!! VERY BAD PRACTICE !!"""
+        return (
+            f"Login: {self.login} | Password: {self.password} | "
+            f"Id_key: {self.id_key} | Signed_pre_key: {self.signed_pre_key} | "
+            f"Id_key_b64: {self.id_key_b64} | Signed_pre_key_b64: {self.signed_pre_key_b64}"
+        )

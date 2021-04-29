@@ -1,7 +1,10 @@
 from typing import List
 from app.user_state import UserState
 from app.config import TABLE_SCHEMA_PATH, DEFAULT_DB_PATH
-from app.chat.crypto.crypto_utils import create_b64_from_key, create_key_from_b64
+from app.chat.crypto.crypto_utils import (
+    create_b64_from_key,
+    create_key_from_b64,
+)
 import sqlite3
 import os
 
@@ -149,16 +152,13 @@ class DatabaseController:
             raise DatabaseControllerException(
                 "Cannot get contacts of not existing user!!!"
             )
-
         cur = self.connection.cursor()
         cur.execute("SELECT login FROM CONTACTS WHERE owner=?", (state.login,))
         results = cur.fetchall()
-        print(results)
         cur.close()
 
         if results is None:
             return []
-
         return list(map(lambda x: x[0], results))
 
     def update_user_password(self, password: str):
@@ -179,7 +179,7 @@ class DatabaseController:
     def load_user_keys(self, user_state: UserState) -> None:
         if not self.user_exists(user_state):
             raise DatabaseControllerException(
-                "Cannot load keys from not existing user"
+                "Cannot load keys of not existing user"
             )
 
         cur = self.connection.cursor()
@@ -196,32 +196,41 @@ class DatabaseController:
         b64_id_key = result[0]
         b64_signed_pre_key = result[1]
 
+        if b64_id_key is None or b64_signed_pre_key is None:
+            raise DatabaseControllerException(
+                "One of the keys is not present in the database. Try to check if "
+                "you uploaded both: id key AND signed pre key. Without them both "
+                "I cannot continue this operation :/"
+            )
+
         id_key_obj = create_key_from_b64(b64_id_key)
         signed_pre_key_obj = create_key_from_b64(b64_signed_pre_key)
-
 
         user_state.id_key = id_key_obj
         user_state.id_key_b64 = b64_id_key
         user_state.signed_pre_key = signed_pre_key_obj
         user_state.signed_pre_key_b64 = b64_signed_pre_key
 
-
     def update_user_keys(self, user_state: UserState) -> None:
-        if not hasattr(user_state, "id_key") and not hasattr(user_state, "signed_pre_key"):
+        if user_state.id_key is None and user_state.signed_pre_key is None:
             raise DatabaseControllerException(
                 "why would you run this method if you dont do anything? *thinking emoji*"
             )
 
         cur = self.connection.cursor()
 
-        if hasattr(user_state, "id_key"):
+        if user_state.id_key is not None:
             id_key_b64 = create_b64_from_key(user_state.id_key)
-            cur.execute("UPDATE USERS SET id_key=?", (id_key_b64,))
+            cur.execute(
+                "UPDATE USERS SET id_key=? WHERE login=? AND password=?",
+                (id_key_b64, user_state.login, user_state.password),
+            )
 
-        if hasattr(user_state, "signed_pre_key"):
+        if user_state.signed_pre_key is not None:
             signed_pre_key_b64 = create_b64_from_key(user_state.signed_pre_key)
             cur.execute(
-                "UPDATE USERS SET signed_pre_key=?", (signed_pre_key_b64,)
+                "UPDATE USERS SET signed_pre_key=? WHERE login=? AND password=?",
+                (signed_pre_key_b64, user_state.login, user_state.password),
             )
 
         self.connection.commit()
