@@ -1,3 +1,8 @@
+"""Tests related with the low level websocket connection with mocked 
+server. 
+Tests for establishing connection, closing connection and ensuring
+that message data throughout the app is not modified
+"""
 from websockets.client import WebSocketClientProtocol
 from app.api.websocket_controller import (
     WebSocketController,
@@ -19,7 +24,8 @@ async def test_establish_connection():
     )
 
     # this may cause issues. Server process must be created before
-    # we start the connection
+    # we start the connection. I cannot find the way to block this 
+    # function till the server is created so i just wait for one second here
     await asyncio.sleep(1)
     alice_state = UserState("alice", "passw")
     ws_controller = WebSocketController(alice_state, "bob")

@@ -1,7 +1,22 @@
-from app.chat.crypto import Establisher, Guest, establisher
+""" Tests related with creation of the chat beetween two users
+You will find here tests related with the 4 Diffie-Hellman
+handshake. 
+You will not find here tests related with server connection
+and server confirmation.
+Also you will not find here tests related with encrypting the messages
+themselves
+"""
+from app.chat.crypto import Establisher, Guest
 from app.user_state import UserState
 
 TEST_DB_PATH = "db_data_test/user.db"
+
+
+def test_basic_creation():
+    alice_state = UserState("alice", "passw")
+    bob_state = UserState("bob", "bobPass")
+    alice = Guest(alice_state)
+    bob = Establisher(bob_state)
 
 
 def test_assigned_starter_keys():
@@ -17,6 +32,8 @@ def test_assigned_starter_keys():
 
     alice_public_id_key = alice.get_public_id_key()
     alice_ephemeral_key = alice.get_public_ephemeral_key()
+    alice_chosen_otk_index = 0  # ONLY MAKES SENSE WHILE TESTING !! THIS IS ABSTRACTED
+    
 
     bob_public_id_key = bob.get_public_id_key()
     bob_signed_prekey = bob.get_public_signed_key()
@@ -39,6 +56,7 @@ def test_assigned_starter_keys():
 
     # below operation should be made irl xdd
     assert alice_skey == bob_skey
+    assert alice.shared_key == bob.shared_key
 
 
 def test_initialize_session():
@@ -51,7 +69,7 @@ def test_initialize_session():
     bob_public_id_key = bob.get_public_id_key()
     bob_signed_prekey = bob.get_public_signed_key()
     bob_one_time_key = bob.get_public_one_time_key()
-    alice_chosen_otk_index = 0  # TODO: usun!!!!
+    alice_chosen_otk_index = 0  # ONLY MAKES SENSE WHILE TESTING !! THIS IS ABSTRACTED
 
     alice_public_id_key = alice.get_public_id_key()
     alice_ephemeral_key = alice.get_public_ephemeral_key()
