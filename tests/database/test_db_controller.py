@@ -1,4 +1,4 @@
-from app.database.db_controller import DatabaseController
+from app.database.db_controller import DatabaseController, DatabaseControllerException
 from app.user_state import UserState
 import pytest
 import types
@@ -25,7 +25,7 @@ def db_init():
 def test_should_throw_no_user(db_init):
     charlie_state = UserState("Charlie", "char_password")
 
-    with pytest.raises(Exception):
+    with pytest.raises(DatabaseControllerException):
         db_init.db_controller.add_contact(charlie_state, "Carol")
 
 
@@ -35,7 +35,7 @@ def test_should_run_fine():
 
 def test_should_throw_contact_error(db_init):
     # thow exception when trying to add self to the contact list
-    with pytest.raises(Exception):
+    with pytest.raises(DatabaseControllerException):
         db_init.db_controller.add_contact(db_init.alice_state, "Alice")
 
 
@@ -53,7 +53,7 @@ def test_delete_user(db_init):
 
 def test_should_throw_when_user_does_not_exists(db_init):
     lee_state = UserState("Lee", "lee_password")
-    with pytest.raises(Exception):
+    with pytest.raises(DatabaseControllerException):
         db_init.db_controller.delete_user(lee_state)
 
 
@@ -93,5 +93,5 @@ def test_delete_contact(db_init):
 
 
 def test_should_throw_when_contact_does_not_exists(db_init):
-    with pytest.raises(Exception):
+    with pytest.raises(DatabaseControllerException):
         db_init.db_controller.delete_contact(db_init.alice_state, "Charlie")
