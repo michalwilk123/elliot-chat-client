@@ -14,16 +14,15 @@ class AppController:
         login, password = "admin", "passw"
 
         self.__user_state = UserState(login, password)
-        self.__db_controller = DatabaseController(self.__user_state)
+        self.__db_controller = DatabaseController()
 
-        self.__db_controller.update_user_id()
 
     def choose_reciever(self) -> str:
         """choosing contact to have chat with
         Returns:
             str: chosen contact login
         """
-        contacts = self.__db_controller.get_user_contacts()
+        contacts = self.__db_controller.get_user_contacts(self.__user_state)
         return contacts[chat.choose_contact(contacts)]
 
     def start(self):
@@ -41,9 +40,6 @@ class AppController:
 
                 self.__chat_controller.start()
                 del self.__chat_controller
-                from time import sleep
-
-                sleep(2)
             elif option == MainMenuOptions.ADD_FRIEND:
                 pass
             elif option == MainMenuOptions.CHANGE_CREDENTIALS:

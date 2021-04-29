@@ -28,11 +28,11 @@ class ChatSession:
         )
 
     def enrypt_sending(self, raw_message: str) -> str:
-        """Ecrypts readable message into url safe
-        encrypted string. Changes state of internal ratchets !
+        """Ecrypts readable message into 
+        encrypted bytes. Changes state of internal ratchets !
 
         Args:
-            raw_message (str): [description]
+            raw_message (str): combined header and body of the message
         """
         return ""
 
