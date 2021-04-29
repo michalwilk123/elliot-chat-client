@@ -185,7 +185,8 @@ class DatabaseController:
         cur = self.connection.cursor()
 
         cur.execute(
-            "SELECT id_key, signed_pre_key FROM USERS WHERE login=? AND password=?",
+            "SELECT id_key, signed_pre_key FROM USERS "
+            "WHERE login=? AND password=?",
             (
                 user_state.login,
                 user_state.password,
@@ -198,9 +199,10 @@ class DatabaseController:
 
         if b64_id_key is None or b64_signed_pre_key is None:
             raise DatabaseControllerException(
-                "One of the keys is not present in the database. Try to check if "
-                "you uploaded both: id key AND signed pre key. Without them both "
-                "I cannot continue this operation :/"
+                "One of the keys is not present in the database. "
+                "Try to check if you uploaded both: id key AND "
+                "signed pre key. Without them both I cannot continue "
+                "this operation :/"
             )
 
         id_key_obj = create_key_from_b64(b64_id_key)
@@ -214,7 +216,7 @@ class DatabaseController:
     def update_user_keys(self, user_state: UserState) -> None:
         if user_state.id_key is None and user_state.signed_pre_key is None:
             raise DatabaseControllerException(
-                "why would you run this method if you dont do anything? *thinking emoji*"
+                "why would you run this method if you dont do anything?"
             )
 
         cur = self.connection.cursor()
@@ -229,7 +231,8 @@ class DatabaseController:
         if user_state.signed_pre_key is not None:
             signed_pre_key_b64 = create_b64_from_key(user_state.signed_pre_key)
             cur.execute(
-                "UPDATE USERS SET signed_pre_key=? WHERE login=? AND password=?",
+                "UPDATE USERS SET signed_pre_key=?"
+                " WHERE login=? AND password=?",
                 (signed_pre_key_b64, user_state.login, user_state.password),
             )
 

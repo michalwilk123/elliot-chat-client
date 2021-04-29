@@ -4,7 +4,7 @@ CREATE TABLE USERS(
     password VARCHAR(255) NOT NULL,
     created DATETIME DEFAULT CURRENT_TIMESTAMP,
     id_key TEXT,
-    signed_pre_key TEXT,
+    signed_pre_key TEXT
 );
 
 CREATE TABLE CONTACTS(

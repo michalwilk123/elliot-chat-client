@@ -1,7 +1,7 @@
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
 from app.user_state import UserState
 from .crypto_utils import generate_private_key, hkdf
-from app.config import MAX_ONE_TIME_KEYS, DEFAULT_DB_PATH
+from app.config import DEFAULT_DB_PATH
 from app.database.db_controller import DatabaseController
 
 

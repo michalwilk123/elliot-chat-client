@@ -1,5 +1,4 @@
-
-"""The purpose of this class is communicating and resolving 
+"""The purpose of this class is communicating and resolving
 utility parts of the Xavier API.
 
 For example you can find here methods for creating account,

@@ -97,5 +97,6 @@ class UserState:
         return (
             f"Login: {self.login} | Password: {self.password} | "
             f"Id_key: {self.id_key} | Signed_pre_key: {self.signed_pre_key} | "
-            f"Id_key_b64: {self.id_key_b64} | Signed_pre_key_b64: {self.signed_pre_key_b64}"
+            f"Id_key_b64: {self.id_key_b64} | Signed_pre_key_b64: "
+            f"{self.signed_pre_key_b64}"
         )

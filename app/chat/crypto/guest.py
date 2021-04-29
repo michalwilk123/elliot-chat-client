@@ -1,7 +1,4 @@
-from cryptography.hazmat.primitives.asymmetric.x25519 import (
-    X25519PrivateKey,
-    X25519PublicKey,
-)
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
 from app.user_state import UserState
 from app.database.db_controller import DatabaseController
 from .crypto_utils import generate_private_key, hkdf
@@ -29,7 +26,7 @@ class Guest:
 
         if not load_from_db and self.user_state.id_key is None:
             self.user_state.id_key = generate_private_key()
-        
+
         if not load_from_db and self.user_state.signed_pre_key is None:
             self.user_state.signed_pre_key = generate_private_key()
 
