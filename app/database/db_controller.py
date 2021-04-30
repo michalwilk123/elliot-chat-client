@@ -2,8 +2,8 @@ from typing import List
 from app.user_state import UserState
 from app.config import TABLE_SCHEMA_PATH, DEFAULT_DB_PATH
 from app.chat.crypto.crypto_utils import (
-    create_b64_from_key,
-    create_key_from_b64,
+    create_b64_from_private_key,
+    create_private_key_from_b64,
 )
 import sqlite3
 import os
@@ -205,8 +205,8 @@ class DatabaseController:
                 "this operation :/"
             )
 
-        id_key_obj = create_key_from_b64(b64_id_key)
-        signed_pre_key_obj = create_key_from_b64(b64_signed_pre_key)
+        id_key_obj = create_private_key_from_b64(b64_id_key)
+        signed_pre_key_obj = create_private_key_from_b64(b64_signed_pre_key)
 
         user_state.id_key = id_key_obj
         user_state.id_key_b64 = b64_id_key
@@ -222,14 +222,16 @@ class DatabaseController:
         cur = self.connection.cursor()
 
         if user_state.id_key is not None:
-            id_key_b64 = create_b64_from_key(user_state.id_key)
+            id_key_b64 = create_b64_from_private_key(user_state.id_key)
             cur.execute(
                 "UPDATE USERS SET id_key=? WHERE login=? AND password=?",
                 (id_key_b64, user_state.login, user_state.password),
             )
 
         if user_state.signed_pre_key is not None:
-            signed_pre_key_b64 = create_b64_from_key(user_state.signed_pre_key)
+            signed_pre_key_b64 = create_b64_from_private_key(
+                user_state.signed_pre_key
+            )
             cur.execute(
                 "UPDATE USERS SET signed_pre_key=?"
                 " WHERE login=? AND password=?",
