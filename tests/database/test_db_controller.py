@@ -6,7 +6,7 @@ from app.user_state import UserState
 import pytest
 import types
 
-TEST_DB_PATH = "db_data_test/user.db"
+TEST_DB_PATH = "test_user.db"
 
 
 @pytest.fixture(autouse=True)

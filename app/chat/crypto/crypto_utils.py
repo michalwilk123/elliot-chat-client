@@ -8,7 +8,7 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from app.config import HASH_SALT, SHARED_KEY_LENGTH, AEAD_NONCE
+from app.config import HASH_SALT, AEAD_NONCE
 import binascii
 from typing import Dict
 
@@ -20,14 +20,14 @@ def generate_DH() -> X25519PrivateKey:
     return X25519PrivateKey.generate()
 
 
-def hkdf(inp: bytes) -> bytes:
+def hkdf(inp: bytes, length:int) -> bytes:
     """
     Reduce combined bytes input into limited length
     bytestring key
     """
     hkdf = HKDF(
         algorithm=hashes.SHA256(),
-        length=SHARED_KEY_LENGTH,
+        length=length,
         salt=HASH_SALT,
         info=b"",
         backend=default_backend(),

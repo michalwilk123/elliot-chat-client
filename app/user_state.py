@@ -1,5 +1,5 @@
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
-from typing import Union
+from typing import Union, Optional
 
 
 class UserStateException(Exception):
@@ -11,7 +11,8 @@ class UserState:
     Current informations about the app state.
     This functionality is based on redux state class.
     Using slots because atributes in this class will be accessed
-    quite frequently
+    quite frequently. Data in this class is not declared on the 
+    startup.
     """
 
     __slots__ = (
@@ -26,10 +27,11 @@ class UserState:
     def __init__(self, login: str, password: str):
         self._login: str = login
         self._password: str = password
-        self._id_key_b64: bytes = b""
-        self._signed_pre_key_b64: bytes = b""
-        self._id_key: Union[X25519PrivateKey, None] = None
-        self._signed_pre_key: Union[X25519PrivateKey, None] = None
+        self._id_key_b64: Optional[bytes] = None
+        self._signed_pre_key_b64: Optional[bytes] = None
+        self._id_key: Optional[X25519PrivateKey] = None
+        self._signed_pre_key: Optional[X25519PrivateKey] = None
+
 
     @property
     def login(self) -> str:
@@ -40,19 +42,25 @@ class UserState:
         return self._password
 
     @property
-    def id_key(self) -> Union[X25519PrivateKey, None]:
+    def id_key(self) -> Optional[X25519PrivateKey]:
         return self._id_key
 
     @property
-    def signed_pre_key(self) -> Union[X25519PrivateKey, None]:
+    def signed_pre_key(self) -> Optional[X25519PrivateKey]:
         return self._signed_pre_key
 
     @property
     def id_key_b64(self) -> bytes:
+        if self._id_key_b64 is None:
+            raise UserStateException(
+                "Cannot access base64 encoded private id key, "\
+                "because it is not present!!")
         return self._id_key_b64
 
     @property
     def signed_pre_key_b64(self) -> bytes:
+        if self._signed_pre_key_b64 is None:
+            raise UserStateException("Private id key not initialized")
         return self._signed_pre_key_b64
 
     # Setters - had to invoke those methods for debugging purposes
