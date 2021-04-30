@@ -2,7 +2,7 @@ from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
 from app.user_state import UserState
 from app.database.db_controller import DatabaseController
 from .crypto_utils import generate_DH, hkdf
-from app.config import DEFAULT_DB_PATH
+from app.config import DEFAULT_DB_PATH, SHARED_KEY_LENGTH
 
 
 class Guest:
@@ -66,7 +66,7 @@ class Guest:
         dh4 = self.ephemeral_key.exchange(one_time_key)
 
         # the shared key is KDF(DH1||DH2||DH3||DH4)
-        self.shared_key = hkdf(dh1 + dh2 + dh3 + dh4)
+        self.shared_key = hkdf(dh1 + dh2 + dh3 + dh4, SHARED_KEY_LENGTH)
 
     def get_shared_key(self):
         if hasattr(self, "shared_key"):

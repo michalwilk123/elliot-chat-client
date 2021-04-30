@@ -1,3 +1,4 @@
+from app.chat.crypto.ratchet_set import RatchetSet
 from typing import List
 from app.user_state import UserState
 from app.config import TABLE_SCHEMA_PATH, DEFAULT_DB_PATH
@@ -167,15 +168,6 @@ class DatabaseController:
 
     # --- Crypto stuff ---
 
-    def get_user_send_ratchet(self, user: str, partner: str):
-        return
-
-    def get_user_recv_ratchet(self, user: str, partner: str):
-        return
-
-    def ratchets_correct(self, user: str, partner: str) -> bool:
-        return True
-
     def load_user_keys(self, user_state: UserState) -> None:
         if not self.user_exists(user_state):
             raise DatabaseControllerException(
@@ -240,3 +232,70 @@ class DatabaseController:
 
         self.connection.commit()
         cur.close()
+
+    # --- RATCHETS STUFF
+
+    def ratchets_present(self, user_state:UserState, contact:str) -> bool:
+        """
+        Check if database values of ratchets are not null
+        """
+        cur = self.connection.cursor()
+
+        cur.execute(
+            "SELECT send_ratchet, recv_ratchet, DH_ratchet FROM CONTACTS "\
+                "WHERE owner=? AND login=?",
+            (user_state.login, contact)
+        )
+
+        if cur is None:
+            raise DatabaseControllerException(
+                f"User does not have the contact {contact}!!"
+            )
+
+        return False if None in cur else True
+
+
+    def load_ratchets(self, user_state:UserState, contact:str) -> RatchetSet:
+        if not self.ratchets_present(user_state, contact):
+            raise DatabaseControllerException(
+                "You tried to load not exitsing ratchets!! Aborting immediately")
+
+        ratchet_set = RatchetSet()
+
+        cur = self.connection.cursor()
+        cur.execute(
+            "SELECT send_ratchet, recv_ratchet, DH_ratchet FROM CONTACTS "\
+                "WHERE owner=? AND login=?",
+            (user_state.login, contact)
+        )
+        result = cur.fetchone()
+
+        ratchet_set.send_ratchet = result[0]
+        ratchet_set.recv_ratchet = result[1]
+        ratchet_set.dh_ratchet = result[2]
+
+        cur.close()
+        return ratchet_set
+
+
+    def save_ratchets(self, user_state:UserState, contact:str, ratchet_set:RatchetSet) -> None:
+        cur = self.connection.cursor()
+
+        cur.execute(
+            "SELECT shared_x3dh_key FROM CONTACTS WHERE owner=? AND login=?",
+            (user_state.login, contact)
+        )
+
+    def get_chat_shared_key(self, user_state:UserState, contact:str) -> bytes:
+        cur = self.connection.cursor()
+
+        cur.execute(
+            "SELECT shared_x3dh_key FROM CONTACTS WHERE owner=? AND login=?",
+            (user_state.login, contact)
+        )
+
+        res = cur.fetchone()
+        assert type(res) == bytes # sanity check
+        cur.close()
+        return res
+

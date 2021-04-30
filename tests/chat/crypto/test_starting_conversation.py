@@ -6,11 +6,12 @@ and server confirmation.
 Also you will not find here tests related with encrypting the messages
 themselves
 """
-from app.chat.crypto import Establisher, Guest
+from app.chat.crypto.establisher import Establisher
+from app.chat.crypto.guest import Guest
 from app.user_state import UserState
 from app.database.db_controller import DatabaseController
 
-TEST_DB_PATH = "db_data_test/user.db"
+TEST_DB_PATH = "test_user.db"
 
 
 def test_basic_creation():
@@ -123,10 +124,3 @@ def test_initialize_session():
     )
     assert alice_prim.shared_key == bob_prim.shared_key
 
-
-def test_initialize_ratchets():
-    assert False
-
-
-def test_create_contact_with_ratchets():
-    assert False
