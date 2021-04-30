@@ -24,7 +24,7 @@ async def test_establish_connection():
     )
 
     # this may cause issues. Server process must be created before
-    # we start the connection. I cannot find the way to block this 
+    # we start the connection. I cannot find the way to block this
     # function till the server is created so i just wait for one second here
     await asyncio.sleep(1)
     alice_state = UserState("alice", "passw")

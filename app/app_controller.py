@@ -16,7 +16,6 @@ class AppController:
         self.__user_state = UserState(login, password)
         self.__db_controller = DatabaseController()
 
-
     def choose_reciever(self) -> str:
         """choosing contact to have chat with
         Returns:

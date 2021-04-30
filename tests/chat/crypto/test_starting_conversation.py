@@ -34,7 +34,9 @@ def test_assigned_starter_keys():
     alice_public_id_key = alice.get_public_id_key()
     alice_ephemeral_key = alice.get_public_ephemeral_key()
 
-    alice_chosen_otk_index = 0  # ONLY MAKES SENSE WHILE TESTING !! THIS IS ABSTRACTED
+    alice_chosen_otk_index = (
+        0  # ONLY MAKES SENSE WHILE TESTING !! THIS IS ABSTRACTED
+    )
     bob.set_one_time_key(alice_chosen_otk_index)
 
     bob_public_id_key = bob.get_public_id_key()
@@ -74,13 +76,14 @@ def test_initialize_session():
 
     alice = Guest(alice_state, DB_PATH=TEST_DB_PATH)
     bob = Establisher(bob_state, DB_PATH=TEST_DB_PATH)
-    alice_chosen_otk_index = 0  # TODO: ONLY MAKES SENSE WHILE TESTING !! THIS IS ABSTRACTED
+    alice_chosen_otk_index = (
+        0  # TODO: ONLY MAKES SENSE WHILE TESTING !! THIS IS ABSTRACTED
+    )
     bob.set_one_time_key(alice_chosen_otk_index)
 
     bob_public_id_key = bob.get_public_id_key()
     bob_signed_prekey = bob.get_public_signed_key()
     bob_one_time_key = bob.get_public_one_time_key()
-
 
     alice_public_id_key = alice.get_public_id_key()
     alice_ephemeral_key = alice.get_public_ephemeral_key()
