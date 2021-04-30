@@ -10,8 +10,23 @@ from app.chat.crypto.ratchet_set import RatchetSet
 
 TEST_DB_PATH = "test_user.db"
 
-def test_ratchet_creation():
-    assert True
+def test_ratchet_set():
+    # check if all getters and setters are running correctly. Sanity check
+    rset = RatchetSet()
+    ir_recv = InnerRatchet(token_bytes(SHARED_KEY_LENGTH))
+    ir_send = InnerRatchet(token_bytes(SHARED_KEY_LENGTH))
+    ir_root = InnerRatchet(token_bytes(SHARED_KEY_LENGTH))
+    ir_dh = InnerRatchet(token_bytes(SHARED_KEY_LENGTH))
+
+    rset.recv_ratchet = ir_recv
+    rset.send_ratchet = ir_send
+    rset.root_ratchet = ir_root
+    rset.dh_ratchet = ir_dh 
+
+    assert rset.recv_ratchet.get_snapshot() == ir_recv.get_snapshot()
+    assert rset.send_ratchet.get_snapshot() == ir_send.get_snapshot()
+    assert rset.root_ratchet.get_snapshot() == ir_root.get_snapshot()
+    assert rset.dh_ratchet.get_snapshot() == ir_dh .get_snapshot()
 
 def test_initialize_ratchets(mocker):
     """
@@ -20,38 +35,51 @@ def test_initialize_ratchets(mocker):
         the app initialization
     """
     alice_state = UserState("alice", "password")
-    bob_state = UserState("bob", "password")
+    alice_clone_state = UserState("alice_clone", "dnsajkndjksan")
+
+    alice_chat = ChatMember(alice_state, "dsnkjdsnak", True)
+    alice_clone_chat = ChatMember(alice_clone_state, "cnxzcxzbcmz", True)
     exp_shared_key = token_bytes(SHARED_KEY_LENGTH)
 
+    """ 
+    fabrication of the alice clone ratchets.
+    """
     mocker.patch(
         "app.database.db_controller.DatabaseController.ratchets_present",
         return_value=True
     )
-    bob = ChatMember(bob_state, "mocked_alice", False)
 
     test_ratchet_set = RatchetSet()
     inner_root = InnerRatchet(exp_shared_key)
 
+    test_ratchet_set.root_ratchet = inner_root
     test_ratchet_set.send_ratchet = InnerRatchet(inner_root.turn()[0])
     test_ratchet_set.recv_ratchet = InnerRatchet(inner_root.turn()[0])
-
 
     mocker.patch(
         "app.database.db_controller.DatabaseController.load_ratchets",
         return_value= test_ratchet_set
     )
-    alice = ChatMember(alice_state, "mocked_bob", True)
+    alice_clone_chat.init_ratchets()
+    alice_clone_r_set =  alice_clone_chat.get_ratchet_set()
 
+    """Now we allow original alice to create her ratchets as she would
+     normally do 
     """
-    Alice gets mocked ratchets and we will compare them 
-    to Bob's ratchets
-    """
+    mocker.patch(
+        "app.database.db_controller.DatabaseController.ratchets_present",
+        return_value=False # Value here changes !!
+    )
+    mocker.patch(
+        "app.database.db_controller.DatabaseController.get_chat_shared_key",
+        return_value=exp_shared_key # Value here changes !!
+    )
+    alice_chat.init_ratchets()
+    alice_r_set = alice_chat.get_ratchet_set()
 
-    alice_set = alice.get_ratchet_set()
-    bob_set = bob.get_ratchet_set()
-
-    bob_set.dh_ratchet = alice_set.dh_ratchet
-    assert alice_set == bob_set
+    assert alice_clone_r_set.root_ratchet.get_snapshot() == alice_r_set.root_ratchet.get_snapshot()
+    assert alice_clone_r_set.send_ratchet.get_snapshot() == alice_r_set.send_ratchet.get_snapshot()
+    assert alice_clone_r_set.recv_ratchet.get_snapshot() == alice_r_set.recv_ratchet.get_snapshot()
 
 
 def test_initialize_symmetric_ratchets():
@@ -70,3 +98,7 @@ def test_initialize_symmetric_ratchets():
 
     assert alice_r_set.recv_ratchet.turn() == bob_r_set.send_ratchet.turn()
     assert bob_r_set.recv_ratchet.turn() == alice_r_set.send_ratchet.turn()
+
+
+def test_dh_ratchet_creation():
+    assert False

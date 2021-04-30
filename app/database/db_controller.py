@@ -295,7 +295,12 @@ class DatabaseController:
         )
 
         res = cur.fetchone()
-        assert type(res) == bytes # sanity check
+
+        if res is None:
+            raise DatabaseControllerException(
+                    f"User: {user_state.login}. ", 
+                    f"Cannot find the contact of user {contact}"
+            )
         cur.close()
         return res
 

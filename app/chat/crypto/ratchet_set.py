@@ -55,13 +55,3 @@ class RatchetSet:
     @root_ratchet.setter
     def root_ratchet(self, ratchet:InnerRatchet) -> None:
         self._root_ratchet = ratchet
-
-    def __eq__(self, o) -> bool:
-        if type(o) == RatchetSet:
-            return self.dh_ratchet == o.dh_ratchet and \
-                self.send_ratchet == o.send_ratchet and \
-                self.recv_ratchet == o.recv_ratchet and \
-                self.root_ratchet == o.root_ratchet
-        else:
-            return False
-        
