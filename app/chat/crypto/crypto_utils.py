@@ -58,6 +58,8 @@ def create_header(
 ) -> Dict:
     return {
         "public_key": create_b64_from_public_key(public_key),
+        "keylen": key_length,
+        "number": message_num,
     }
 
 

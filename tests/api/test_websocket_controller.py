@@ -1,8 +1,9 @@
-"""Tests related with the low level websocket connection with mocked 
-server. 
+"""Tests related with the low level websocket connection with mocked
+server.
 Tests for establishing connection, closing connection and ensuring
 that message data throughout the app is not modified
 """
+from app.config import PREFFERED_ENCODING
 from websockets.client import WebSocketClientProtocol
 from app.api.websocket_controller import (
     WebSocketController,
@@ -17,7 +18,8 @@ import subprocess
 
 @pytest.mark.asyncio
 async def test_establish_connection():
-    # integrity test - checking if the client is connectiong to sockets properly
+    # integrity test - checking if the client is connectiong
+    # to sockets properly
 
     p = subprocess.Popen(
         ["pipenv", "run", "python", "tests/api/server_example.py"]
@@ -42,7 +44,7 @@ async def test_send_raw_message(mocker):
 
     def send_side_effect(body):
         nonlocal message_list
-        message_list.append(body.decode("utf-8"))
+        message_list.append(body.decode(PREFFERED_ENCODING))
 
     mocker.patch(
         "websockets.WebSocketClientProtocol.send", side_effect=send_side_effect

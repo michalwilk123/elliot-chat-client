@@ -1,7 +1,7 @@
 import websockets
 
 from app.user_state import UserState
-from app.config import SERVER_URL
+from app.config import SERVER_URL, PREFFERED_ENCODING
 
 
 class NotConnectedToWSHostException(Exception):
@@ -52,7 +52,9 @@ class WebSocketController:
 
         Throw error when message had problems
         """
-        await self.websocket_proto.send(message_body.encode("utf-8"))
+        await self.websocket_proto.send(
+            message_body.encode(PREFFERED_ENCODING)
+        )
 
     async def send_message(self, message_body: str):
         """Send message to the guest. Throw error when not

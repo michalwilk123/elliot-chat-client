@@ -64,7 +64,10 @@ def test_assigned_starter_keys():
 
 
 def test_initialize_session():
-    """integrity test: save and load up the connection. This time using the database"""
+    """
+    integrity test: save and load up the connection.
+    This time using the database
+    """
     alice_state = UserState("alice", "password")
     bob_state = UserState("bob", "password")
 

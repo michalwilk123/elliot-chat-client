@@ -5,8 +5,8 @@ class InnerRatchet:
     def __init__(self, initial_state: bytes) -> None:
         """
         Args:
-            initial_state (bytes): According to signal 
-            documentation this key is the shared secret 
+            initial_state (bytes): According to signal
+            documentation this key is the shared secret
             of two sides of the conversation.
         """
         pass
