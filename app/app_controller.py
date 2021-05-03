@@ -10,8 +10,7 @@ class AppController:
 
     def __init__(self):
         utilities.startup()
-        # login, password = utilities.get_credentials()
-        login, password = "admin", "passw"
+        login, password = utilities.get_credentials()
 
         self.__user_state = UserState(login, password)
         self.__db_controller = DatabaseController()
