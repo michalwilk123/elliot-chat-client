@@ -35,9 +35,7 @@ def test_assigned_starter_keys():
     alice_public_id_key = alice.get_public_id_key()
     alice_ephemeral_key = alice.get_public_ephemeral_key()
 
-    alice_chosen_otk_index = (
-        0  # ONLY MAKES SENSE WHILE TESTING !! THIS IS ABSTRACTED
-    )
+    alice_chosen_otk_index = 0  # ONLY MAKES SENSE WHILE TESTING !! THIS IS ABSTRACTED
     bob.set_one_time_key(alice_chosen_otk_index)
 
     bob_public_id_key = bob.get_public_id_key()
@@ -119,8 +117,5 @@ def test_initialize_session():
         id_key=bobp_pId, signed_prekey=bobp_sig, one_time_key=bobp_ot
     )
 
-    bob_prim.create_shared_key_X3DH(
-        id_key=alicep_pId, ephemeral_key=alicep_eph
-    )
+    bob_prim.create_shared_key_X3DH(id_key=alicep_pId, ephemeral_key=alicep_eph)
     assert alice_prim.shared_key == bob_prim.shared_key
-

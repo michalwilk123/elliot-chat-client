@@ -64,9 +64,7 @@ def test_add_contact(db_init):
     db_init.db_controller.add_contact(db_init.alice_state, "Bob")
 
     assert db_init.db_controller.contact_exists(db_init.alice_state, "Bob")
-    assert not db_init.db_controller.contact_exists(
-        db_init.alice_state, "Oscar"
-    )
+    assert not db_init.db_controller.contact_exists(db_init.alice_state, "Oscar")
 
 
 def test_get_contacts(db_init):

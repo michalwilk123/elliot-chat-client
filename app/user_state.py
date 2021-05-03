@@ -11,7 +11,7 @@ class UserState:
     Current informations about the app state.
     This functionality is based on redux state class.
     Using slots because atributes in this class will be accessed
-    quite frequently. Data in this class is not declared on the 
+    quite frequently. Data in this class is not declared on the
     startup.
     """
 
@@ -31,7 +31,6 @@ class UserState:
         self._signed_pre_key_b64: Optional[bytes] = None
         self._id_key: Optional[X25519PrivateKey] = None
         self._signed_pre_key: Optional[X25519PrivateKey] = None
-
 
     @property
     def login(self) -> str:
@@ -53,8 +52,9 @@ class UserState:
     def id_key_b64(self) -> bytes:
         if self._id_key_b64 is None:
             raise UserStateException(
-                "Cannot access base64 encoded private id key, "\
-                "because it is not present!!")
+                "Cannot access base64 encoded private id key, "
+                "because it is not present!!"
+            )
         return self._id_key_b64
 
     @property

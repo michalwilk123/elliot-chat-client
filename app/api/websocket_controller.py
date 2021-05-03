@@ -52,9 +52,7 @@ class WebSocketController:
 
         Throw error when message had problems
         """
-        await self.websocket_proto.send(
-            message_body.encode(PREFFERED_ENCODING)
-        )
+        await self.websocket_proto.send(message_body.encode(PREFFERED_ENCODING))
 
     async def send_message(self, message_body: str):
         """Send message to the guest. Throw error when not
