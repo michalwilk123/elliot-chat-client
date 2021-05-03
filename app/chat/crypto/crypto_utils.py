@@ -8,19 +8,22 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from app.config import HASH_SALT, AEAD_NONCE
+from cryptography.hazmat.primitives.padding import PKCS7
+from app.config import HASH_SALT, AEAD_NONCE, BLOCK_SIZE
 import binascii
 from typing import Dict
 
 
 def generate_DH() -> X25519PrivateKey:
     """
-    Generate Diffie-Hellman key pair
+    Generate Diffie-Hellman key pair.
+    The riddle for the diffie hellman is
+    Elliptic Curve problem
     """
     return X25519PrivateKey.generate()
 
 
-def hkdf(inp: bytes, length:int) -> bytes:
+def hkdf(inp: bytes, length: int) -> bytes:
     """
     Reduce combined bytes input into limited length
     bytestring key
@@ -40,12 +43,28 @@ def dh(private_key: X25519PrivateKey, public_key: X25519PublicKey) -> bytes:
     return out
 
 
-def aead_encrypt(key: bytes, message: bytes, additional_data: bytes) -> bytes:
+def aead_encrypt(
+    key: bytes, message: bytes, additional_data: bytes = b"", /, pad: bool = False
+) -> bytes:
+    if pad:
+        padder = PKCS7(BLOCK_SIZE).padder()
+        padded_key = padder.update(key)
+        padded_key += padder.finalize()
+        key = padded_key
+
     aesgcm = AESGCM(key)
     return aesgcm.encrypt(AEAD_NONCE, message, additional_data)
 
 
-def aead_decrypt(key: bytes, message: bytes, additional_data: bytes) -> bytes:
+def aead_decrypt(
+    key: bytes, message: bytes, additional_data: bytes = b"", /, pad: bool = False
+) -> bytes:
+    if pad:
+        padder = PKCS7(BLOCK_SIZE).padder()
+        padded_key = padder.update(key)
+        padded_key += padder.finalize()
+        key = padded_key
+
     aesgcm = AESGCM(key)
     return aesgcm.decrypt(AEAD_NONCE, message, additional_data)
 

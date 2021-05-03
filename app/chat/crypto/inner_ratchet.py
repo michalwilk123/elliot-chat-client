@@ -1,4 +1,3 @@
-
 from .crypto_utils import hkdf
 from app.config import RATCHET_STATE_KEY_LENGTH
 from typing import Tuple
@@ -15,22 +14,18 @@ class InnerRatchet:
         """
         self.state = initial_state
 
-
-    def turn(self, inp:bytes=b'') -> Tuple[bytes, bytes]:
+    def turn(self, inp: bytes = b"") -> Tuple[bytes, bytes]:
         output = hkdf(self.state + inp, RATCHET_STATE_KEY_LENGTH)
         new_root, chain_key = output[:32], output[32:]
+        self.state = new_root
         return new_root, chain_key
-
 
     def get_snapshot(self) -> bytes:
         """
-        THE ONLY THING THAT DEFINES THE 
-        RATCHET IT IS THE STATE. SO THE 
-        SNAPSHOT OF THE RATCHET IS BASE64 ENCODED
-        STATE KEY
+        THE ONLY THING THAT DEFINES THE
+        RATCHET IT IS THE STATE. SO THE
+        SNAPSHOT OF THE RATCHET IS ITS BASE64
+        ENCODED STATE KEY
         """
         b64_encoded = binascii.b2a_base64(self.state)
         return b64_encoded
-
-
-

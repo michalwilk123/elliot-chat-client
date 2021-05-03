@@ -17,12 +17,8 @@ MAX_ONE_TIME_KEYS = 1
 SHARED_KEY_LENGTH = 32
 RATCHET_STATE_KEY_LENGTH = 64
 # according to crypto library docs nonce should have 96 bits
-AEAD_NONCE = (
-    b"4d99420692e1e7d1437f8f669543be8f9ee66142c7028"
-    b"03cfb9ab52c2e2e1cb984af21d94af4ca2309d889057801"
-    b"f119dabe168125b1b0ed3e6e4e2946e354eb7cfb2a12f73"
-    b"89a0bb7a0e85cfea80790e70267dffa7ec497dcb8c6c78b096bea"
-)
+AEAD_NONCE = "SEG0PPiuHAFm".encode(PREFFERED_ENCODING)
+BLOCK_SIZE = 128
 
 # usunąć
 USER_DATA_PATH = "app/database/data.db <- look at this duud"
