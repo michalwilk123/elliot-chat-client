@@ -1,11 +1,14 @@
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 from app.chat.crypto.ratchet_set import RatchetSet
 from typing import List, Tuple
 from app.user_state import UserState
-from app.config import TABLE_SCHEMA_PATH, DEFAULT_DB_PATH
+from app.config import TABLE_SCHEMA_PATH, DEFAULT_DB_PATH, MAX_ONE_TIME_KEYS
 from app.chat.crypto.crypto_utils import (
     create_b64_from_private_key,
     create_private_key_from_b64,
+    generate_DH,
 )
+from app.api.api_util_operations import update_one_time_key
 import sqlite3
 import os
 import binascii
@@ -51,7 +54,14 @@ class DatabaseController:
             return False
 
         tables = set(map(lambda x: x[0], tables))
-        return {"USERS", "CONTACTS"} == tables
+        res = {"USERS", "CONTACTS", "ONE_TIME_KEYS"} == tables
+
+        if not res:
+            os.remove(self.DB_PATH)
+            self.connection.close()
+            self.connection = sqlite3.connect(self.DB_PATH)
+
+        return res
 
     def create_tables(self):
         cur = self.connection.cursor()
@@ -65,10 +75,32 @@ class DatabaseController:
 
     def create_user(self, new_user_state: UserState):
         cur = self.connection.cursor()
+        id_key = generate_DH()
+        signed_pre_key = generate_DH()
+
         cur.execute(
-            "INSERT INTO USERS (login, password) VALUES (?, ?)",
-            (new_user_state.login, new_user_state.password),
+            "INSERT INTO USERS (login, password, id_key, signed_pre_key) "
+            "VALUES (?, ?, ?, ?)",
+            (
+                new_user_state.login,
+                new_user_state.password,
+                create_b64_from_private_key(id_key),
+                create_b64_from_private_key(signed_pre_key),
+            ),
         )
+
+        for i in range(MAX_ONE_TIME_KEYS):
+            otk = generate_DH()
+            cur.execute(
+                "INSERT INTO ONE_TIME_KEYS (key_index, owner, key) "
+                "VALUES (?, ?, ?)",
+                (
+                    i + 1,
+                    new_user_state.login,
+                    create_b64_from_private_key(otk),
+                ),
+            )
+
         self.connection.commit()
         cur.close()
 
@@ -253,7 +285,7 @@ class DatabaseController:
             raise DatabaseControllerException(
                 f"User does not have the contact {contact}!!"
             )
-        
+
         return False if None in res else True
 
     def load_ratchets(self, user_state: UserState, contact: str) -> RatchetSet:
@@ -286,7 +318,7 @@ class DatabaseController:
             "UPDATE CONTACTS "
             "SET dh_ratchet=?, send_ratchet=?, recv_ratchet=?, root_ratchet=? "
             "WHERE owner=? AND login=?",
-            (*ratchet_set.get_tuple(), user_state.login, contact)
+            (*ratchet_set.get_tuple(), user_state.login, contact),
         )
         self.connection.commit()
         cur.close()
@@ -311,13 +343,48 @@ class DatabaseController:
         cur.close()
         return binascii.a2b_base64(res[0]), bool(res[1])
 
-    def save_chat_init_variables(self, user_state:UserState, contact:str, shared_key:bytes, turn:bool) -> None:
+    def save_chat_init_variables(
+        self,
+        user_state: UserState,
+        contact: str,
+        shared_key: bytes,
+        turn: bool,
+    ) -> None:
         cur = self.connection.cursor()
         cur.execute(
             "UPDATE CONTACTS "
             "SET shared_x3dh_key=?, current_turn=? "
             "WHERE owner=? AND login=?",
-            (binascii.b2a_base64(shared_key), int(turn), user_state.login, contact)
+            (
+                binascii.b2a_base64(shared_key),
+                int(turn),
+                user_state.login,
+                contact,
+            ),
         )
         self.connection.commit()
         cur.close()
+
+    def replace_one_time_key(
+        self, user_state: UserState, index: int
+    ) -> Tuple[X25519PrivateKey, X25519PrivateKey]:
+        cur = self.connection.cursor()
+        cur.execute(
+            "SELECT key FROM ONE_TIME_KEYS " "WHERE key_index=? AND owner=?",
+            (index, user_state.login),
+        )
+        current_key = create_private_key_from_b64(cur.fetchone()[0])
+        new_one_time_key = generate_DH()
+
+        cur.execute(
+            "UPDATE ONE_TIME_KEYS SET key=? " "WHERE key_index=? AND owner=?",
+            (
+                create_b64_from_private_key(new_one_time_key),
+                index,
+                user_state.login,
+            ),
+        )
+        self.connection.commit()
+        cur.close()
+
+        return current_key, new_one_time_key

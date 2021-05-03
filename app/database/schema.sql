@@ -3,8 +3,8 @@ CREATE TABLE USERS(
     login VARCHAR(255) PRIMARY KEY,
     password VARCHAR(255) NOT NULL,
     created DATETIME DEFAULT CURRENT_TIMESTAMP,
-    id_key TEXT,
-    signed_pre_key TEXT
+    id_key TEXT NOT NULL,
+    signed_pre_key TEXT NOT NULL
 );
 
 CREATE TABLE CONTACTS(
@@ -20,4 +20,12 @@ CREATE TABLE CONTACTS(
     current_turn INTEGER,
     FOREIGN KEY(login) REFERENCES USERS(login),
     PRIMARY KEY (owner, login)
+);
+
+CREATE TABLE ONE_TIME_KEYS(
+    key_index INTEGER NOT NULL,
+    owner VARCHAR(255) NOT NULL,
+    key TEXT,
+    FOREIGN KEY(owner) REFERENCES USERS(login),
+    PRIMARY KEY (key_index, owner)
 );
