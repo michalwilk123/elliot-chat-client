@@ -21,7 +21,9 @@ async def test_establish_connection():
     # integrity test - checking if the client is connectiong
     # to sockets properly
 
-    p = subprocess.Popen(["pipenv", "run", "python", "tests/api/server_example.py"])
+    p = subprocess.Popen(
+        ["pipenv", "run", "python", "tests/api/server_example.py"]
+    )
 
     # this may cause issues. Server process must be created before
     # we start the connection. I cannot find the way to block this
@@ -101,7 +103,9 @@ async def test_should_throw_on_multiple_close(mocker):
     mocker.patch("websockets.connect", side_effect=mocked_establish_connection)
 
     # mocking closing connection to not have any effect
-    mocker.patch("websockets.WebSocketClientProtocol.close", side_effect=lambda: ...)
+    mocker.patch(
+        "websockets.WebSocketClientProtocol.close", side_effect=lambda: ...
+    )
 
     await ws_controller.establish_connection()
     await ws_controller.close_connection()

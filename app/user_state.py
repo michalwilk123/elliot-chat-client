@@ -1,5 +1,5 @@
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
-from typing import Union, Optional
+from typing import Optional
 
 
 class UserStateException(Exception):

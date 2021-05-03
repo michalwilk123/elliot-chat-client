@@ -11,15 +11,21 @@ class ChatSession:
     decrypts incoming and recieving messages!!!
     """
 
-    def __init__(self, user: str, partner: str, DB_PATH: str = DEFAULT_DB_PATH):
+    def __init__(
+        self, user: str, partner: str, DB_PATH: str = DEFAULT_DB_PATH
+    ):
         self.db_controller = DatabaseController(DB_PATH)
         self.user = user
         if not self.db_controller.ratchets_correct(user, partner):
             self.create_ratchets()
             self.save_ratchets()
 
-        self.send_ratchet = self.db_controller.get_user_send_ratchet(user, partner)
-        self.recv_ratchet = self.db_controller.get_user_recv_ratchet(user, partner)
+        self.send_ratchet = self.db_controller.get_user_send_ratchet(
+            user, partner
+        )
+        self.recv_ratchet = self.db_controller.get_user_recv_ratchet(
+            user, partner
+        )
 
     def enrypt_sending(self, raw_message: str) -> str:
         """Ecrypts readable message into

@@ -6,7 +6,9 @@ import pytest
 
 
 def test_get_timestamp():
-    expr = re.search("[0-9]{2}:[0-9]{2}:[0-9]{2}", ChatController.get_timestamp())
+    expr = re.search(
+        "[0-9]{2}:[0-9]{2}:[0-9]{2}", ChatController.get_timestamp()
+    )
     assert expr is not None
 
 

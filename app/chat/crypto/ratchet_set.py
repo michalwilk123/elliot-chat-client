@@ -8,7 +8,12 @@ class RatchetSetException(Exception):
 
 
 class RatchetSet:
-    __slots__ = "_dh_ratchet", "_send_ratchet", "_recv_ratchet", "_root_ratchet"
+    __slots__ = (
+        "_dh_ratchet",
+        "_send_ratchet",
+        "_recv_ratchet",
+        "_root_ratchet",
+    )
 
     def __init__(self) -> None:
         self._root_ratchet: Optional[InnerRatchet] = None
@@ -25,19 +30,25 @@ class RatchetSet:
     @property
     def send_ratchet(self):
         if self._send_ratchet is None:
-            raise RatchetSetException("Cannot access non existing sending ratchet")
+            raise RatchetSetException(
+                "Cannot access non existing sending ratchet"
+            )
         return self._send_ratchet
 
     @property
     def recv_ratchet(self):
         if self._recv_ratchet is None:
-            raise RatchetSetException("Cannot access non existing recieving ratchet")
+            raise RatchetSetException(
+                "Cannot access non existing recieving ratchet"
+            )
         return self._recv_ratchet
 
     @property
     def root_ratchet(self):
         if self._root_ratchet is None:
-            raise RatchetSetException("Cannot access non existing root ratchet")
+            raise RatchetSetException(
+                "Cannot access non existing root ratchet"
+            )
         return self._root_ratchet
 
     @dh_ratchet.setter

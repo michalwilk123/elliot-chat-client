@@ -38,7 +38,7 @@ def test_initialize_ratchets(mocker):
     alice_clone_chat = ChatMember(alice_clone_state, "cnxzcxzbcmz", True)
     exp_shared_key = token_bytes(SHARED_KEY_LENGTH)
 
-    """ 
+    """
     fabrication of the alice clone ratchets.
     """
     mocker.patch(
@@ -61,7 +61,7 @@ def test_initialize_ratchets(mocker):
     alice_clone_r_set = alice_clone_chat.get_ratchet_set()
 
     """Now we allow original alice to create her ratchets as she would
-     normally do 
+     normally do
     """
     mocker.patch(
         "app.database.db_controller.DatabaseController.ratchets_present",
@@ -130,9 +130,12 @@ def test_dh_ratchet_creation():
     alice_r_set = alice.get_ratchet_set()
     bob_r_set = bob.get_ratchet_set()
 
-    assert alice_r_set.recv_ratchet.get_snapshot() == bob_r_set.send_ratchet.get_snapshot()
-    
-    """ 
+    assert (
+        alice_r_set.recv_ratchet.get_snapshot()
+        == bob_r_set.send_ratchet.get_snapshot()
+    )
+
+    """
     We will perform now an illegal operation -> double turn of the dh_ratchet
     without any operation so we will supress this error for now.
     """
@@ -142,9 +145,10 @@ def test_dh_ratchet_creation():
     bob.rotate_dh_ratchet(alice.get_dh_public_key())
     assert bob_r_set.recv_ratchet.turn() == alice_r_set.send_ratchet.turn()
 
-    # assert bob_r_set.root_ratchet.get_snapshot() == alice_r_set.root_ratchet.get_snapshot()
+    # assert bob_r_set.root_ratchet.get_snapshot() \
+    # == alice_r_set.root_ratchet.get_snapshot()
     """
-    NOTE: From the design the root_ratchet will always 
+    NOTE: From the design the root_ratchet will always
     be diffrent on the 2 sides of conversation
     """
 
@@ -172,19 +176,21 @@ def test_send_recieve_alice_first(mocker):
     alice.initialize_symmertic_ratchets(exp_shared_key)
     bob.initialize_symmertic_ratchets(exp_shared_key)
 
-    # III transaction: Initiator turns his dh_ratchet once 
+    # III transaction: Initiator turns his dh_ratchet once
     # to synchronise with the other party
     alice.rotate_dh_ratchet(bob.get_dh_public_key())
 
     # SENDING MESSAGE:
-    """Alice sends the message first so she must ensure that the dh ratchet is turned
+    """
+    Alice sends the message first so she must ensure that
+    the dh ratchet is turned
     """
     msg1 = "wysyłam messydź, ==+-()@#$ Żółśćśńź".encode(PREFFERED_ENCODING)
     msg3 = "elo elo 320 dsjandjksan".encode(PREFFERED_ENCODING)
 
     """
-    NOTE: 
-    Tldr: 
+    NOTE:
+    Tldr:
     So basicly rotations of the ratchets are perfomed as follows:
         - root_ratchet - turns on initialization, and per dh_ratchet rotation
         - send_ratchet - turns per send operation
@@ -192,7 +198,7 @@ def test_send_recieve_alice_first(mocker):
         - dh_ratchet - is derived from dh exchange and root_ratchet turn output
     """
     enc = alice.encrypt(msg1)
-    msg2 = bob.decrypt(enc,public_key=alice.get_dh_public_key(), initial=True)
+    msg2 = bob.decrypt(enc, public_key=alice.get_dh_public_key(), initial=True)
 
     assert msg1 == msg2
 
@@ -240,12 +246,12 @@ def test_send_recieve_alice_second(mocker):
     bob.rotate_dh_ratchet(alice.get_dh_public_key())
 
     """
-    NOTE: As you can see, we did not turn the bob dh_ratchet 
+    NOTE: As you can see, we did not turn the bob dh_ratchet
     before recieving the message from alice, thats because bob
     has already turned his ratchet and alice did not.
-    
+
     The rotation of dh_ratchet is performed alternately
-    beetween two parties. 
+    beetween two parties.
     And because the state of the dh_ratchet is very tightly
     linked with the root_ratchet we cannot do the dh_ratchet
     rotation in advance.
@@ -291,7 +297,7 @@ def test_should_desynchronize_when_bad_initiator(mocker):
 
     with pytest.raises(ChatMemberException):
         bob.decrypt(enc)
-    
+
     alice.my_turn = True
     bob.my_turn = False
     alice.initialize_symmertic_ratchets(exp_shared_key)

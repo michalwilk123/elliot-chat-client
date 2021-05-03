@@ -1,5 +1,3 @@
-from secrets import token_bytes
-from typing import Tuple
 from .crypto.inner_ratchet import InnerRatchet
 from .crypto.ratchet_set import RatchetSet, RatchetSetException
 from .crypto.crypto_utils import (
@@ -14,11 +12,11 @@ from cryptography.hazmat.primitives.asymmetric.x25519 import (
     X25519PublicKey,
 )
 from cryptography.exceptions import InvalidTag
-import binascii
 
 
 class ChatMemberException(Exception):
     ...
+
 
 class ChatMember:
     """
@@ -41,7 +39,7 @@ class ChatMember:
         The program aborts immiedatly when this variable will contain
         not expected value !
         """
-        self.my_turn = my_turn 
+        self.my_turn = my_turn
         self.contact = contact
         self.db_path = DB_PATH
 
@@ -96,43 +94,56 @@ class ChatMember:
         if not self.my_turn:
             raise ChatMemberException(
                 "SYNCHORNIZATION ERROR!! Detected double "
-                "turn when decrypting!! Aborting...") 
+                "turn when decrypting!! Aborting..."
+            )
         self.my_turn = False
 
         try:
             recieving_secret = self.ratchet_set.dh_ratchet.exchange(public_key)
-            shared_recv_secret = self.ratchet_set.root_ratchet.turn(recieving_secret)[0]
+            shared_recv_secret = self.ratchet_set.root_ratchet.turn(
+                recieving_secret
+            )[0]
             self.ratchet_set.recv_ratchet = InnerRatchet(shared_recv_secret)
         except RatchetSetException:
             ...
 
         self.ratchet_set.dh_ratchet = X25519PrivateKey.generate()
         sending_secret = self.ratchet_set.dh_ratchet.exchange(public_key)
-        shared_send_secret = self.ratchet_set.root_ratchet.turn(sending_secret)[0]
+        shared_send_secret = self.ratchet_set.root_ratchet.turn(
+            sending_secret
+        )[0]
         self.ratchet_set.send_ratchet = InnerRatchet(shared_send_secret)
 
     def encrypt(self, message: bytes) -> bytes:
         self.my_turn = True
         root_key, chain_key = self.ratchet_set.send_ratchet.turn()
         ecrypted_plaintext = aead_encrypt(root_key, message, chain_key)
-        print(binascii.b2a_base64(root_key))
         return ecrypted_plaintext
 
-    def decrypt(self, message: bytes, /, public_key: X25519PublicKey=None, initial:bool=False) -> bytes:
+    def decrypt(
+        self,
+        message: bytes,
+        /,
+        public_key: X25519PublicKey = None,
+        initial: bool = False,
+    ) -> bytes:
         if initial:
-            if not public_key is None:
+            if public_key is not None:
                 self.rotate_dh_ratchet(public_key)
             else:
-                raise ChatMemberException("Cannot initiate DH ratchet rotation without dh public key!!")
+                raise ChatMemberException(
+                    "Cannot initiate DH ratchet rotation "
+                    "without dh public key!!"
+                )
         root_key, chain_key = self.ratchet_set.recv_ratchet.turn()
-        print(binascii.b2a_base64(root_key))
 
         try:
             decrypted_message = aead_decrypt(root_key, message, chain_key)
         except InvalidTag:
             raise ChatMemberException(
                 "You passed bad key for decryption! ",
-                "Check if your ratchets are synchronized correctly!!")
+                "Check if your ratchets are synchronized correctly!!",
+            )
 
         return decrypted_message
 

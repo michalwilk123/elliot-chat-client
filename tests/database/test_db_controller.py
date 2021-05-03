@@ -33,7 +33,7 @@ def test_should_throw_no_user(db_init):
 
 
 def test_should_run_fine():
-    db_controller = DatabaseController(DB_PATH=TEST_DB_PATH)
+    DatabaseController(DB_PATH=TEST_DB_PATH)
 
 
 def test_should_throw_contact_error(db_init):
@@ -64,7 +64,9 @@ def test_add_contact(db_init):
     db_init.db_controller.add_contact(db_init.alice_state, "Bob")
 
     assert db_init.db_controller.contact_exists(db_init.alice_state, "Bob")
-    assert not db_init.db_controller.contact_exists(db_init.alice_state, "Oscar")
+    assert not db_init.db_controller.contact_exists(
+        db_init.alice_state, "Oscar"
+    )
 
 
 def test_get_contacts(db_init):
@@ -78,7 +80,7 @@ def test_get_contacts(db_init):
     expected = {"Bob", "Charlie", "Oscar"}
 
     """We cannot control the sequence of incoming data
-    Therefore we ignore it by treating it as set and applying 
+    Therefore we ignore it by treating it as set and applying
     union operation
     """
     con_list = set(con_list) | expected

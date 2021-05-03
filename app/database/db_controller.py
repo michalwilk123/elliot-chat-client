@@ -105,7 +105,9 @@ class DatabaseController:
             )
 
         if state.login == contactLogin:
-            raise DatabaseControllerException("Cannot add self to the contacts!!!")
+            raise DatabaseControllerException(
+                "Cannot add self to the contacts!!!"
+            )
 
         cur = self.connection.cursor()
 
@@ -119,7 +121,9 @@ class DatabaseController:
 
     def delete_contact(self, user_state: UserState, contactLogin: str):
         if not self.contact_exists(user_state, contactLogin):
-            raise DatabaseControllerException("Cannot delete not existing contact")
+            raise DatabaseControllerException(
+                "Cannot delete not existing contact"
+            )
 
         cur = self.connection.cursor()
         cur.execute(
@@ -166,12 +170,15 @@ class DatabaseController:
 
     def load_user_keys(self, user_state: UserState) -> None:
         if not self.user_exists(user_state):
-            raise DatabaseControllerException("Cannot load keys of not existing user")
+            raise DatabaseControllerException(
+                "Cannot load keys of not existing user"
+            )
 
         cur = self.connection.cursor()
 
         cur.execute(
-            "SELECT id_key, signed_pre_key FROM USERS " "WHERE login=? AND password=?",
+            "SELECT id_key, signed_pre_key FROM USERS "
+            "WHERE login=? AND password=?",
             (
                 user_state.login,
                 user_state.password,
@@ -214,9 +221,12 @@ class DatabaseController:
             )
 
         if user_state.signed_pre_key is not None:
-            signed_pre_key_b64 = create_b64_from_private_key(user_state.signed_pre_key)
+            signed_pre_key_b64 = create_b64_from_private_key(
+                user_state.signed_pre_key
+            )
             cur.execute(
-                "UPDATE USERS SET signed_pre_key=?" " WHERE login=? AND password=?",
+                "UPDATE USERS SET signed_pre_key=?"
+                " WHERE login=? AND password=?",
                 (signed_pre_key_b64, user_state.login, user_state.password),
             )
 
@@ -247,7 +257,8 @@ class DatabaseController:
     def load_ratchets(self, user_state: UserState, contact: str) -> RatchetSet:
         if not self.ratchets_present(user_state, contact):
             raise DatabaseControllerException(
-                "You tried to load not exitsing ratchets!! Aborting immediately"
+                "You tried to load not exitsing ratchets!! "
+                "Aborting immediately"
             )
 
         ratchet_set = RatchetSet()
@@ -277,7 +288,9 @@ class DatabaseController:
             (user_state.login, contact),
         )
 
-    def get_chat_shared_key(self, user_state: UserState, contact: str) -> bytes:
+    def get_chat_shared_key(
+        self, user_state: UserState, contact: str
+    ) -> bytes:
         cur = self.connection.cursor()
 
         cur.execute(

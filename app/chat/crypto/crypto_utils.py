@@ -44,7 +44,11 @@ def dh(private_key: X25519PrivateKey, public_key: X25519PublicKey) -> bytes:
 
 
 def aead_encrypt(
-    key: bytes, message: bytes, additional_data: bytes = b"", /, pad: bool = False
+    key: bytes,
+    message: bytes,
+    additional_data: bytes = b"",
+    /,
+    pad: bool = False,
 ) -> bytes:
     if pad:
         padder = PKCS7(BLOCK_SIZE).padder()
@@ -57,7 +61,11 @@ def aead_encrypt(
 
 
 def aead_decrypt(
-    key: bytes, message: bytes, additional_data: bytes = b"", /, pad: bool = False
+    key: bytes,
+    message: bytes,
+    additional_data: bytes = b"",
+    /,
+    pad: bool = False,
 ) -> bytes:
     if pad:
         padder = PKCS7(BLOCK_SIZE).padder()

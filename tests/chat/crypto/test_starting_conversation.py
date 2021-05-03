@@ -1,6 +1,6 @@
 """ Tests related with creation of the chat beetween two users
 You will find here tests related with the 3 Diffie-Hellman
-handshake. 
+handshake.
 You will not find here tests related with server connection
 and server confirmation.
 Also you will not find here tests related with encrypting the messages
@@ -17,8 +17,8 @@ TEST_DB_PATH = "test_user.db"
 def test_basic_creation():
     alice_state = UserState("alice", "passw")
     bob_state = UserState("bob", "bobPass")
-    alice = Guest(alice_state, DB_PATH=TEST_DB_PATH)
-    bob = Establisher(bob_state, DB_PATH=TEST_DB_PATH)
+    Guest(alice_state, DB_PATH=TEST_DB_PATH)
+    Establisher(bob_state, DB_PATH=TEST_DB_PATH)
 
 
 def test_assigned_starter_keys():
@@ -35,7 +35,9 @@ def test_assigned_starter_keys():
     alice_public_id_key = alice.get_public_id_key()
     alice_ephemeral_key = alice.get_public_ephemeral_key()
 
-    alice_chosen_otk_index = 0  # ONLY MAKES SENSE WHILE TESTING !! THIS IS ABSTRACTED
+    alice_chosen_otk_index = (
+        0  # ONLY MAKES SENSE WHILE TESTING !! THIS IS ABSTRACTED
+    )
     bob.set_one_time_key(alice_chosen_otk_index)
 
     bob_public_id_key = bob.get_public_id_key()
@@ -117,5 +119,7 @@ def test_initialize_session():
         id_key=bobp_pId, signed_prekey=bobp_sig, one_time_key=bobp_ot
     )
 
-    bob_prim.create_shared_key_X3DH(id_key=alicep_pId, ephemeral_key=alicep_eph)
+    bob_prim.create_shared_key_X3DH(
+        id_key=alicep_pId, ephemeral_key=alicep_eph
+    )
     assert alice_prim.shared_key == bob_prim.shared_key
