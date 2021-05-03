@@ -243,17 +243,18 @@ class DatabaseController:
         cur = self.connection.cursor()
 
         cur.execute(
-            "SELECT send_ratchet, recv_ratchet, DH_ratchet FROM CONTACTS "
+            "SELECT dh_ratchet, send_ratchet, recv_ratchet, root_ratchet FROM CONTACTS "
             "WHERE owner=? AND login=?",
             (user_state.login, contact),
         )
 
-        if cur is None:
+        res = cur.fetchone()
+        if res is None:
             raise DatabaseControllerException(
                 f"User does not have the contact {contact}!!"
             )
-
-        return False if None in cur else True
+        
+        return False if None in res else True
 
     def load_ratchets(self, user_state: UserState, contact: str) -> RatchetSet:
         if not self.ratchets_present(user_state, contact):
@@ -290,7 +291,7 @@ class DatabaseController:
         self.connection.commit()
         cur.close()
 
-    def get_chat_init_variables(
+    def load_chat_init_variables(
         self, user_state: UserState, contact: str
     ) -> Tuple[bytes, bool]:
         cur = self.connection.cursor()
@@ -308,13 +309,13 @@ class DatabaseController:
                 f"Cannot find the contact of user {contact}",
             )
         cur.close()
-        return binascii.a2b_base64(res[0]), res[1]
+        return binascii.a2b_base64(res[0]), bool(res[1])
 
-    def set_chat_init_variables(self, user_state:UserState, contact:str, shared_key:bytes, turn:bool) -> None:
+    def save_chat_init_variables(self, user_state:UserState, contact:str, shared_key:bytes, turn:bool) -> None:
         cur = self.connection.cursor()
         cur.execute(
             "UPDATE CONTACTS "
-            "SET shared_x3dh_key=?, current_turn=? FROM CONTACTS "
+            "SET shared_x3dh_key=?, current_turn=? "
             "WHERE owner=? AND login=?",
             (binascii.b2a_base64(shared_key), int(turn), user_state.login, contact)
         )

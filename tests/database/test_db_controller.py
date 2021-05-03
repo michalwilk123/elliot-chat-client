@@ -108,8 +108,8 @@ def test_should_throw_when_contact_does_not_exists(db_init):
 def test_save_load_ratchets(db_init):
     test_contact = "Charlie"
     db_init.db_controller.add_contact(db_init.alice_state, test_contact)
-    r_set = RatchetSet()
 
+    r_set = RatchetSet()
     r_set.root_ratchet = InnerRatchet(token_bytes(10))
     r_set.send_ratchet = InnerRatchet(token_bytes(10))
     r_set.recv_ratchet = InnerRatchet(token_bytes(10))
@@ -124,3 +124,42 @@ def test_save_load_ratchets(db_init):
     assert r_set.recv_ratchet.get_snapshot() == r_set_out.recv_ratchet.get_snapshot()
     assert create_b64_from_private_key(r_set.dh_ratchet) == create_b64_from_private_key(r_set_out.dh_ratchet)
 
+
+def test_save_load_init_vars(db_init):
+    test_contact = "Charlie"
+    db_init.db_controller.add_contact(db_init.alice_state, test_contact)
+
+    test_turn = True
+    test_shared = token_bytes(10)
+
+    db_init.db_controller.save_chat_init_variables(
+        db_init.alice_state,
+        test_contact,
+        test_shared,
+        test_turn
+    )
+
+    shared_out, turn_out = db_init.db_controller.load_chat_init_variables(
+        db_init.alice_state,
+        test_contact
+    )
+
+    assert shared_out == test_shared
+    assert test_turn == turn_out
+
+
+def test_ratchets_present(db_init):
+    test_contact = "Charlie"
+    db_init.db_controller.add_contact(db_init.alice_state, test_contact)
+
+    r_set = RatchetSet()
+    r_set.root_ratchet = InnerRatchet(token_bytes(10))
+    r_set.send_ratchet = InnerRatchet(token_bytes(10))
+    r_set.recv_ratchet = InnerRatchet(token_bytes(10))
+    r_set.dh_ratchet = X25519PrivateKey.generate()
+
+    assert not db_init.db_controller.ratchets_present(db_init.alice_state, test_contact)
+
+    r_set.recv_ratchet = InnerRatchet(token_bytes(10))
+    db_init.db_controller.save_ratchets(db_init.alice_state, test_contact, r_set)
+    assert db_init.db_controller.ratchets_present(db_init.alice_state, test_contact)
