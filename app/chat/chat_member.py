@@ -1,3 +1,4 @@
+from typing import Optional
 from .crypto.inner_ratchet import InnerRatchet
 from .crypto.ratchet_set import RatchetSet, RatchetSetException
 from .crypto.crypto_utils import (
@@ -12,6 +13,7 @@ from cryptography.hazmat.primitives.asymmetric.x25519 import (
     X25519PublicKey,
 )
 from cryptography.exceptions import InvalidTag
+from app.database.db_controller import DatabaseController
 
 
 class ChatMemberException(Exception):
@@ -28,10 +30,17 @@ class ChatMember:
         self,
         user_state: UserState,
         contact: str,
+        my_turn:Optional[bool]=None,
         /,
         DB_PATH=DEFAULT_DB_PATH,
     ) -> None:
         self.user_state = user_state
+        """
+        The my_turn variable makes sure that all ratchets are synchronized
+        The program aborts immiedatly when this variable will contain
+        not expected value !
+        """
+        self.my_turn = my_turn
         self.contact = contact
         self.db_path = DB_PATH
 
@@ -39,7 +48,6 @@ class ChatMember:
         """
         Checks if old ratchets are present. If not
         """
-        from app.database.db_controller import DatabaseController
 
         db_controller = DatabaseController(DB_PATH=self.db_path)
 
@@ -48,15 +56,12 @@ class ChatMember:
                 self.user_state, self.contact
             )
         else:
-            """
-            The my_turn variable makes sure that all ratchets are synchronized
-            The program aborts immiedatly when this variable will contain
-            not expected value !
-            """
             # this will run for the first time the users are connected
-            shared_key, self.my_turn = db_controller.get_chat_init_variables(
+            shared_key, my_turn = db_controller.load_chat_init_variables(
                 self.user_state, self.contact
             )
+            if self.my_turn is not None: self.my_turn = my_turn
+
             self.initialize_symmertic_ratchets(shared_key)
 
     def get_ratchet_set(self) -> RatchetSet:

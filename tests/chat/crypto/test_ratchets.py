@@ -39,7 +39,7 @@ def test_initialize_ratchets(mocker):
     exp_shared_key = token_bytes(SHARED_KEY_LENGTH)
 
     """
-    fabrication of the alice clone ratchets.
+    Fabrication of the alice clone ratchets.
     """
     mocker.patch(
         "app.database.db_controller.DatabaseController.ratchets_present",
@@ -68,8 +68,8 @@ def test_initialize_ratchets(mocker):
         return_value=False,  # Value here changes !!
     )
     mocker.patch(
-        "app.database.db_controller.DatabaseController.get_chat_shared_key",
-        return_value=exp_shared_key,  # Value here changes !!
+        "app.database.db_controller.DatabaseController.load_chat_init_variables",
+        return_value=(exp_shared_key, True),  # Value here changes !!
     )
     alice_chat.init_ratchets()
     alice_r_set = alice_chat.get_ratchet_set()
@@ -168,8 +168,8 @@ def test_send_recieve_alice_first(mocker):
     )
 
     mocker.patch(
-        "app.database.db_controller.DatabaseController.get_chat_shared_key",
-        return_value=exp_shared_key,
+        "app.database.db_controller.DatabaseController.load_chat_init_variables",
+        return_value=(exp_shared_key, True),
     )
 
     # II transaction: Second party sets their DH ratchets from shared key
@@ -233,8 +233,8 @@ def test_send_recieve_alice_second(mocker):
     )
 
     mocker.patch(
-        "app.database.db_controller.DatabaseController.get_chat_shared_key",
-        return_value=exp_shared_key,
+        "app.database.db_controller.DatabaseController.load_chat_init_variables",
+        return_value=(exp_shared_key, True),
     )
 
     alice.initialize_symmertic_ratchets(exp_shared_key)
@@ -284,8 +284,8 @@ def test_should_desynchronize_when_bad_initiator(mocker):
     )
 
     mocker.patch(
-        "app.database.db_controller.DatabaseController.get_chat_shared_key",
-        return_value=exp_shared_key,
+        "app.database.db_controller.DatabaseController.load_chat_init_variables",
+        return_value=(exp_shared_key, True),
     )
 
     alice.initialize_symmertic_ratchets(exp_shared_key)
