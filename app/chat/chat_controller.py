@@ -1,3 +1,4 @@
+from .chat_member import ChatMember
 from app.api.websocket_controller import WebSocketController
 from .message import Message
 from app.user_state import UserState
@@ -7,10 +8,11 @@ import aioconsole
 
 
 class ChatController:
-    def __init__(self, user_state: UserState, reciever: str):
-        self._websocket_controller = WebSocketController(user_state, reciever)
-        self.reciever = reciever
+    def __init__(self, user_state: UserState, partner: str):
+        self._websocket_controller = WebSocketController(user_state, partner)
+        self.partner = partner
         self.user_state = user_state
+        self.chat_session = ChatMember(user_state, partner)
 
     @staticmethod
     def _display_message(message: Message, pretty: bool = True):
@@ -51,7 +53,7 @@ class ChatController:
         while True:
             message = await self._websocket_controller.get_message()
             await self.messageQueue.put(
-                Message(self.reciever, ChatController.get_timestamp(), message)
+                Message(self.partner, ChatController.get_timestamp(), message)
             )
 
     async def user_input_worker(self):
@@ -64,7 +66,7 @@ class ChatController:
                 ChatController._display_message(vis_message)
 
             if end:
-                print(f"Ending chat with user { self.reciever }")
+                print(f"Ending chat with user { self.partner }")
                 break
 
             # we check if :q is pressed, if yes we end the chat service

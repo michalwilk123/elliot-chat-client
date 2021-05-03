@@ -28,18 +28,10 @@ class ChatMember:
         self,
         user_state: UserState,
         contact: str,
-        my_turn: bool,
         /,
         DB_PATH=DEFAULT_DB_PATH,
     ) -> None:
         self.user_state = user_state
-
-        """
-        The my_turn variable makes sure that all ratchets are synchronized
-        The program aborts immiedatly when this variable will contain
-        not expected value !
-        """
-        self.my_turn = my_turn
         self.contact = contact
         self.db_path = DB_PATH
 
@@ -56,8 +48,13 @@ class ChatMember:
                 self.user_state, self.contact
             )
         else:
+            """
+            The my_turn variable makes sure that all ratchets are synchronized
+            The program aborts immiedatly when this variable will contain
+            not expected value !
+            """
             # this will run for the first time the users are connected
-            shared_key = db_controller.get_chat_shared_key(
+            shared_key, self.my_turn = db_controller.get_chat_init_variables(
                 self.user_state, self.contact
             )
             self.initialize_symmertic_ratchets(shared_key)
