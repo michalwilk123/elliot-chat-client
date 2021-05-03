@@ -3,6 +3,7 @@ from app.user_state import UserState
 from .crypto_utils import generate_DH, hkdf
 from app.config import DEFAULT_DB_PATH, SHARED_KEY_LENGTH
 from app.database.db_controller import DatabaseController
+from app.api.api_util_operations import update_one_time_key
 
 
 class Establisher:
@@ -33,7 +34,7 @@ class Establisher:
 
         self.user_state = user_state
 
-    def set_one_time_key(self, index: int):
+    def set_one_time_key(self, index: int) -> None:
         """Fetches one time key chosen by the guest,
         deletes it and creates new one for its place
         Returns:
@@ -41,8 +42,12 @@ class Establisher:
         """The one time key exists for very limited time
         so we DO NOT save in the user_state class
         """
-        self.one_time_key = generate_DH()
-        # TODO: DELETE THE ONE TIME KEY AT THIS MOMENT
+        db_controller = DatabaseController(DB_PATH=self.db_path)
+        current_key, new_key = db_controller.replace_one_time_key(
+            self.user_state, index
+        )
+        self.one_time_key = current_key
+        update_one_time_key(self.user_state, new_key.public_key(), index)
 
     def get_shared_key(self):
         if hasattr(self, "shared_key"):
