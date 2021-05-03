@@ -27,5 +27,9 @@ class InnerRatchet:
         SNAPSHOT OF THE RATCHET IS ITS BASE64
         ENCODED STATE KEY
         """
-        b64_encoded = binascii.b2a_base64(self.state)
+        b64_encoded = binascii.b2a_base64(self.state, newline=False)
         return b64_encoded
+
+    @staticmethod
+    def from_snapshot(serialized:bytes) -> bytes:
+        return binascii.a2b_base64(serialized)

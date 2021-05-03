@@ -1,5 +1,7 @@
+import binascii
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 from .inner_ratchet import InnerRatchet
+from .crypto_utils import create_b64_from_private_key, create_private_key_from_b64
 from typing import Optional
 
 
@@ -66,3 +68,17 @@ class RatchetSet:
     @root_ratchet.setter
     def root_ratchet(self, ratchet: InnerRatchet) -> None:
         self._root_ratchet = ratchet
+
+    def get_tuple(self):
+        return (
+            create_b64_from_private_key(self.dh_ratchet),
+            self.send_ratchet.get_snapshot(), 
+            self.recv_ratchet.get_snapshot(), 
+            self.root_ratchet.get_snapshot()
+        )
+
+    def from_snapshot(self, dh_r:bytes, send_r:bytes, recv_r:bytes, root_r:bytes):
+        self._dh_ratchet = create_private_key_from_b64(dh_r)
+        self._send_ratchet = InnerRatchet(InnerRatchet.from_snapshot(send_r))
+        self._recv_ratchet = InnerRatchet(InnerRatchet.from_snapshot(recv_r))
+        self._root_ratchet = InnerRatchet(InnerRatchet.from_snapshot(root_r))

@@ -1,5 +1,5 @@
 from app.chat.crypto.ratchet_set import RatchetSet
-from typing import List
+from typing import List, Tuple
 from app.user_state import UserState
 from app.config import TABLE_SCHEMA_PATH, DEFAULT_DB_PATH
 from app.chat.crypto.crypto_utils import (
@@ -8,6 +8,7 @@ from app.chat.crypto.crypto_utils import (
 )
 import sqlite3
 import os
+import binascii
 
 
 class DatabaseControllerException(Exception):
@@ -265,15 +266,12 @@ class DatabaseController:
 
         cur = self.connection.cursor()
         cur.execute(
-            "SELECT send_ratchet, recv_ratchet, DH_ratchet FROM CONTACTS "
+            "SELECT dh_ratchet, send_ratchet, recv_ratchet, root_ratchet FROM CONTACTS "
             "WHERE owner=? AND login=?",
             (user_state.login, contact),
         )
         result = cur.fetchone()
-
-        ratchet_set.send_ratchet = result[0]
-        ratchet_set.recv_ratchet = result[1]
-        ratchet_set.dh_ratchet = result[2]
+        ratchet_set.from_snapshot(*result[0:4])
 
         cur.close()
         return ratchet_set
@@ -284,17 +282,21 @@ class DatabaseController:
         cur = self.connection.cursor()
 
         cur.execute(
-            "SELECT shared_x3dh_key FROM CONTACTS WHERE owner=? AND login=?",
-            (user_state.login, contact),
+            "UPDATE CONTACTS "
+            "SET dh_ratchet=?, send_ratchet=?, recv_ratchet=?, root_ratchet=? "
+            "WHERE owner=? AND login=?",
+            (*ratchet_set.get_tuple(), user_state.login, contact)
         )
+        self.connection.commit()
+        cur.close()
 
-    def get_chat_shared_key(
+    def get_chat_init_variables(
         self, user_state: UserState, contact: str
-    ) -> bytes:
+    ) -> Tuple[bytes, bool]:
         cur = self.connection.cursor()
-
         cur.execute(
-            "SELECT shared_x3dh_key FROM CONTACTS WHERE owner=? AND login=?",
+            "SELECT shared_x3dh_key, current_turn FROM CONTACTS "
+            "WHERE owner=? AND login=?",
             (user_state.login, contact),
         )
 
@@ -306,4 +308,15 @@ class DatabaseController:
                 f"Cannot find the contact of user {contact}",
             )
         cur.close()
-        return res
+        return binascii.a2b_base64(res[0]), res[1]
+
+    def set_chat_init_variables(self, user_state:UserState, contact:str, shared_key:bytes, turn:bool) -> None:
+        cur = self.connection.cursor()
+        cur.execute(
+            "UPDATE CONTACTS "
+            "SET shared_x3dh_key=?, current_turn=? FROM CONTACTS "
+            "WHERE owner=? AND login=?",
+            (binascii.b2a_base64(shared_key), int(turn), user_state.login, contact)
+        )
+        self.connection.commit()
+        cur.close()
