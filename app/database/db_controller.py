@@ -8,7 +8,6 @@ from app.chat.crypto.crypto_utils import (
     create_private_key_from_b64,
     generate_DH,
 )
-from app.api.api_util_operations import update_one_time_key
 import sqlite3
 import os
 import binascii
@@ -275,8 +274,8 @@ class DatabaseController:
         cur = self.connection.cursor()
 
         cur.execute(
-            "SELECT dh_ratchet, send_ratchet, recv_ratchet, root_ratchet FROM CONTACTS "
-            "WHERE owner=? AND login=?",
+            "SELECT dh_ratchet, send_ratchet, recv_ratchet, root_ratchet "
+            "FROM CONTACTS WHERE owner=? AND login=?",
             (user_state.login, contact),
         )
 
@@ -299,8 +298,8 @@ class DatabaseController:
 
         cur = self.connection.cursor()
         cur.execute(
-            "SELECT dh_ratchet, send_ratchet, recv_ratchet, root_ratchet FROM CONTACTS "
-            "WHERE owner=? AND login=?",
+            "SELECT dh_ratchet, send_ratchet, recv_ratchet, root_ratchet "
+            "FROM CONTACTS WHERE owner=? AND login=?",
             (user_state.login, contact),
         )
         result = cur.fetchone()

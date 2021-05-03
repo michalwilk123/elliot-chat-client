@@ -1,3 +1,4 @@
+from app.chat.crypto.establisher import Establisher
 from .user_state import UserState
 from .cli import utilities, chat
 from .config import MainMenuOptions
@@ -12,15 +13,16 @@ class AppController:
         utilities.startup()
         login, password = utilities.get_credentials()
 
-        self.__user_state = UserState(login, password)
-        self.__db_controller = DatabaseController()
+        self.user_state = UserState(login, password)
+        self.db_controller = DatabaseController()
+        self.establisher = Establisher(self.user_state, load_from_db=True)
 
     def choose_reciever(self) -> str:
         """choosing contact to have chat with
         Returns:
             str: chosen contact login
         """
-        contacts = self.__db_controller.get_user_contacts(self.__user_state)
+        contacts = self.db_controller.get_user_contacts(self.user_state)
         return contacts[chat.choose_contact(contacts)]
 
     def start(self):
@@ -29,11 +31,9 @@ class AppController:
             option = MainMenuOptions.MESSAGE
 
             if option == MainMenuOptions.MESSAGE:
-                # reciever = self.choose_reciever()
-                reciever = "Mark"
+                reciever = self.choose_reciever()
                 self.__chat_controller = ChatController(
-                    self.__user_state,
-                    reciever,
+                    self.user_state, reciever, self.establisher
                 )
 
                 self.__chat_controller.start()

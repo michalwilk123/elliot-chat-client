@@ -30,8 +30,8 @@ class ChatMember:
         self,
         user_state: UserState,
         contact: str,
-        my_turn:Optional[bool]=None,
         /,
+        my_turn: Optional[bool] = None,
         DB_PATH=DEFAULT_DB_PATH,
     ) -> None:
         self.user_state = user_state
@@ -60,7 +60,8 @@ class ChatMember:
             shared_key, my_turn = db_controller.load_chat_init_variables(
                 self.user_state, self.contact
             )
-            if self.my_turn is not None: self.my_turn = my_turn
+            if self.my_turn is not None:
+                self.my_turn = my_turn
 
             self.initialize_symmertic_ratchets(shared_key)
 

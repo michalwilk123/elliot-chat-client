@@ -135,17 +135,22 @@ class ChatController:
                     )
                 ),
             )
-            self.establisher.set_one_time_key(new_contact["body"]["one_time_key_index"])
+            self.establisher.set_one_time_key(
+                new_contact["body"]["one_time_key_index"]
+            )
             keys_dict = {
-                "public_id_key" : self.establisher.get_public_id_key(),
-                "public_signed_prekey" : self.establisher.get_public_signed_key(),
-                "public_one_time_key" : self.establisher.get_public_one_time_key()
+                "public_id_key":
+                    self.establisher.get_public_id_key(),
+                "public_signed_prekey":
+                    self.establisher.get_public_signed_key(),
+                "public_one_time_key":
+                    self.establisher.get_public_one_time_key(),
             }
             self.establisher.save()
 
             guest_response = build_response(
                 self.user_state,
                 type=ResponseType.X3DH_SESSION_HANDSHAKE,
-                keyes = keys_dict
+                keyes=keys_dict,
             )
             await self._websocket_controller.send_message(guest_response)

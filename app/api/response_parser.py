@@ -19,5 +19,7 @@ def parse_respose(raw: str) -> dict:
     return out
 
 
-def build_response(user_state:UserState, type:ResponseType, keyes:dict) -> str:
+def build_response(
+    user_state: UserState, type: ResponseType, keyes: dict
+) -> str:
     ...

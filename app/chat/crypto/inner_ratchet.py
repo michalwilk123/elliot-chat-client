@@ -31,5 +31,5 @@ class InnerRatchet:
         return b64_encoded
 
     @staticmethod
-    def from_snapshot(serialized:bytes) -> bytes:
+    def from_snapshot(serialized: bytes) -> bytes:
         return binascii.a2b_base64(serialized)
