@@ -1,21 +1,25 @@
+from app.api.response_controller import ResponseController
 from app.chat.crypto.establisher import Establisher
 from .user_state import UserState
 from .cli import utilities, chat
-from .config import MainMenuOptions
+from .config import MainMenuOptions, SERVER_URL
 from .database.db_controller import DatabaseController
 from .chat.chat_controller import ChatController
+from app.api.api_util_operations import get_pending_responses
 
 
 class AppController:
     __slots__ = "__user_state", "__db_controller", "__chat_controller"
 
     def __init__(self):
+        self.resolve_startup()
+        self.db_controller = DatabaseController()
         utilities.startup()
         login, password = utilities.get_credentials()
 
         self.user_state = UserState(login, password)
-        self.db_controller = DatabaseController()
-        self.establisher = Establisher(self.user_state, load_from_db=True)
+        self.response_controller = ResponseController(self.user_state, SERVER_URL)
+        self.establisher = Establisher(self.user_state, self.response_controller, load_from_db=True)
 
     def choose_reciever(self) -> str:
         """choosing contact to have chat with
@@ -24,6 +28,15 @@ class AppController:
         """
         contacts = self.db_controller.get_user_contacts(self.user_state)
         return contacts[chat.choose_contact(contacts)]
+
+    def resolve_startup(self):
+        ...
+
+    def add_new_user_contact(self):
+        ...
+
+    def get_blocking_server_message(self):
+        ...
 
     def start(self):
         while True:
@@ -43,6 +56,8 @@ class AppController:
             elif option == MainMenuOptions.CHANGE_CREDENTIALS:
                 pass
             elif option == MainMenuOptions.REMOVE_ACCOUNT:
+                pass
+            elif option == MainMenuOptions.WAITROOM:
                 pass
             elif option == MainMenuOptions.EXIT:
                 print("bye")
