@@ -1,3 +1,4 @@
+from app.api.response_controller import ResponseController
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
 from app.user_state import UserState
 from .crypto_utils import generate_DH, hkdf
@@ -10,6 +11,7 @@ class Establisher:
     def __init__(
         self,
         user_state: UserState,
+        response_controller:ResponseController,
         /,
         id_key=None,
         signed_pre_key=None,
@@ -20,6 +22,7 @@ class Establisher:
         This is created once per app runtime
         """
         self.db_path = DB_PATH
+        self.response_controller = response_controller
 
         if load_from_db:
             self.user_state = user_state
@@ -47,7 +50,11 @@ class Establisher:
             self.user_state, index
         )
         self.one_time_key = current_key
-        update_one_time_key(self.user_state, new_key.public_key(), index)
+        update_one_time_key(
+            *self.response_controller.get_nessesary_params(),
+            new_key.public_key(), 
+            index
+        )
 
     def get_shared_key(self):
         if hasattr(self, "shared_key"):

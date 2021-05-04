@@ -29,4 +29,5 @@ class MainMenuOptions(Enum):
     ADD_FRIEND = 1
     CHANGE_CREDENTIALS = 2
     REMOVE_ACCOUNT = 3
-    EXIT = 4
+    WAITROOM = 4
+    EXIT = 5

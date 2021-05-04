@@ -28,6 +28,7 @@ def get_menu_option() -> MainMenuOptions:
         "Add user",
         "Update account",
         "Delete account",
+        "Waitroom",
         "Exit",
     ]
     menu = TerminalMenu(opts)
