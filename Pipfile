@@ -4,19 +4,17 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-pytest = "*"
 colorama = "*"
-websockets = "*"
-requests = "*"
 simple-term-menu = "*"
 aioconsole = "*"
-black = "*"
-flake8 = "*"
 cryptography = "*"
-pytest-asyncio = "*"
-pytest-mock = "*"
+aiohttp = "*"
 
 [dev-packages]
+pytest-mock = "*"
+pytest-asyncio = "*"
+pytest = "*"
+black = "*"
 
 [requires]
 python_version = "3.9"
