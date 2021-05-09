@@ -1,22 +1,25 @@
 import asyncio
-import websockets
+from aiohttp import web, WSMsgType
 
 
-async def connected(websocket, path: str):
-    """Simple server:
-    recieves text and echos it back to the client
+async def websocket_handler(request):
+    print('Websocket connection starting')
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
+    print('Websocket connection ready')
 
-    Args:
-        websocket ([type]): [description]
-        path (str): [description]
-    """
-    name = await websocket.recv()
-    greeting = name.upper() + "FROM: " + path
-    await websocket.send(greeting)
+    async for msg in ws:
+        print(msg)
+        if msg.type == WSMsgType.TEXT:
+            print(msg.data)
+            if msg.data == 'close':
+                await ws.close()
+            else:
+                await ws.send_str(msg.data + '/answer')
+
+    return ws
 
 
-print("starting server")
-start_server = websockets.serve(connected, "localhost", 8001)
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
-print("ending server")
+app = web.Application()
+app.router.add_route('GET', '/ws', websocket_handler)
+web.run_app(app, host="localhost", port=8001)
