@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.padding import PKCS7
-from app.config import HASH_SALT, AEAD_NONCE, BLOCK_SIZE
+from app.config import HASH_SALT, AEAD_NONCE, BLOCK_SIZE, SHARED_KEY_LENGTH
 import binascii
 from typing import Dict
 
@@ -77,6 +77,45 @@ def aead_decrypt(
     return aesgcm.decrypt(AEAD_NONCE, message, additional_data)
 
 
+def create_shared_key_X3DH_guest(
+    my_private_id_key: X25519PrivateKey,
+    my_private_ephemeral_key: X25519PrivateKey,
+    estab_public_id_key: X25519PublicKey,
+    estab_public_signed_pre_key: X25519PublicKey,
+    estab_public_one_time_key: X25519PublicKey,
+) -> bytes:
+
+    """the 3 diffie hellman key exchange
+    from the perspective of someone who is an
+    initiator of the conversation
+    """
+    dh1 = my_private_id_key.exchange(estab_public_signed_pre_key)
+    dh2 = my_private_ephemeral_key.exchange(estab_public_id_key)
+    dh3 = my_private_ephemeral_key.exchange(estab_public_signed_pre_key)
+    dh4 = my_private_ephemeral_key.exchange(estab_public_one_time_key)
+
+    # the shared key is KDF(DH1||DH2||DH3||DH4)
+    shared_key = hkdf(dh1 + dh2 + dh3 + dh4, SHARED_KEY_LENGTH)
+    return shared_key
+
+
+def create_shared_key_X3DH_establisher(
+    my_private_id_key: X25519PrivateKey,
+    my_private_signed_pre_key: X25519PrivateKey,
+    my_private_one_time_key: X25519PrivateKey,
+    guest_public_id_key: X25519PublicKey,
+    guest_public_ephemeral_key: X25519PublicKey,
+) -> bytes:
+    dh1 = my_private_signed_pre_key.exchange(guest_public_id_key)
+    dh2 = my_private_id_key.exchange(guest_public_ephemeral_key)
+    dh3 = my_private_signed_pre_key.exchange(guest_public_ephemeral_key)
+    dh4 = my_private_one_time_key.exchange(guest_public_ephemeral_key)
+
+    # the shared key is KDF(DH1||DH2||DH3||DH4)
+    shared_key = hkdf(dh1 + dh2 + dh3 + dh4, SHARED_KEY_LENGTH)
+    return shared_key
+
+
 # --- HELPER FUNCTIONS
 
 
@@ -136,7 +175,7 @@ def create_private_key_from_b64(b64Key: bytes) -> X25519PrivateKey:
     return loaded_private_key
 
 
-def create_b64_from_public_key(private_key: X25519PublicKey) -> bytes:
+def create_b64_from_public_key(public_key: X25519PublicKey) -> bytes:
     """Create b64 ascii string from private key object
 
     Args:
@@ -144,7 +183,7 @@ def create_b64_from_public_key(private_key: X25519PublicKey) -> bytes:
     Returns:
         bytes: b64 ascii string
     """
-    public_bytes = public_key_to_bytes(private_key)
+    public_bytes = public_key_to_bytes(public_key)
     b64_bytes = binascii.b2a_base64(public_bytes, newline=False)
     return b64_bytes
 
