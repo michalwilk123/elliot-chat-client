@@ -3,9 +3,10 @@ from pathlib import Path
 
 
 # server constants
-SERVER_URL = "ws://localhost:8001"
+SERVER_URL = "http://localhost:5000"
 TABLE_SCHEMA_PATH = str(Path("app") / "database" / "schema.sql")
 DEFAULT_DB_PATH = "user.db"
+FETCH_DELAY_PERIOD = 5  # time period beetween each server data update
 
 # other
 PREFFERED_ENCODING = "utf-8"
@@ -19,9 +20,6 @@ RATCHET_STATE_KEY_LENGTH = 64
 # according to crypto library docs nonce should have 96 bits
 AEAD_NONCE = "SEG0PPiuHAFm".encode(PREFFERED_ENCODING)
 BLOCK_SIZE = 128
-
-# usunąć
-USER_DATA_PATH = "app/database/data.db <- look at this duud"
 
 
 class MainMenuOptions(Enum):
