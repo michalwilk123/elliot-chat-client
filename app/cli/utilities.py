@@ -1,10 +1,7 @@
-"""
-Handling user input, ALL FUNCTIONS DO NOT CHANGE STATE!!!
-"""
-from getpass import getpass
 from app.config import MainMenuOptions
 from simple_term_menu import TerminalMenu
-from typing import Tuple
+from datetime import datetime
+import aioconsole
 
 
 def startup():
@@ -15,11 +12,10 @@ def startup():
     )
 
 
-def get_credentials() -> Tuple[str, str]:
+def get_credentials() -> str:
     print("Log in")
     login = input("login: ")
-    password = getpass("password: ")
-    return login, password
+    return login
 
 
 def get_menu_option() -> MainMenuOptions:
@@ -34,3 +30,12 @@ def get_menu_option() -> MainMenuOptions:
     menu = TerminalMenu(opts)
     index_chosen = menu.show()
     return MainMenuOptions(index_chosen)
+
+
+def get_timestamp() -> str:
+    now = datetime.now()
+    return now.strftime("%H:%M:%S")
+
+
+async def get_contact_name():
+    return await aioconsole.ainput("Contact Name:")
