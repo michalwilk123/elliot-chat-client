@@ -1,7 +1,7 @@
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 from app.chat.crypto.ratchet_set import RatchetSet
-from typing import List, Tuple
-from app.user_state import UserState
+from typing import List, Optional, Tuple
+from app.user.user_state import UserState
 from app.config import TABLE_SCHEMA_PATH, DEFAULT_DB_PATH, MAX_ONE_TIME_KEYS
 from app.chat.crypto.crypto_utils import (
     create_b64_from_private_key,
@@ -14,6 +14,9 @@ import binascii
 
 
 class DatabaseControllerException(Exception):
+    ...
+
+class ContactParametersError(Exception):
     ...
 
 
@@ -72,19 +75,18 @@ class DatabaseController:
 
     # User crud operations
 
-    def create_user(self, new_user_state: UserState):
+    def create_user(self, user_state: UserState):
         cur = self.connection.cursor()
-        id_key = generate_DH()
-        signed_pre_key = generate_DH()
+        user_state.id_key = generate_DH()
+        user_state.signed_pre_key = generate_DH()
 
         cur.execute(
-            "INSERT INTO USERS (login, password, id_key, signed_pre_key) "
-            "VALUES (?, ?, ?, ?)",
+            "INSERT INTO USERS (login, id_key, signed_pre_key) "
+            "VALUES (?, ?, ?)",
             (
-                new_user_state.login,
-                new_user_state.password,
-                create_b64_from_private_key(id_key),
-                create_b64_from_private_key(signed_pre_key),
+                user_state.login,
+                create_b64_from_private_key(user_state.id_key),
+                create_b64_from_private_key(user_state.signed_pre_key),
             ),
         )
 
@@ -94,8 +96,8 @@ class DatabaseController:
                 "INSERT INTO ONE_TIME_KEYS (key_index, owner, key) "
                 "VALUES (?, ?, ?)",
                 (
-                    i + 1,
-                    new_user_state.login,
+                    i,
+                    user_state.login,
                     create_b64_from_private_key(otk),
                 ),
             )
@@ -106,8 +108,8 @@ class DatabaseController:
     def user_exists(self, user_state: UserState) -> bool:
         cur = self.connection.cursor()
         cur.execute(
-            "SELECT login FROM USERS WHERE login=? AND password=?",
-            (user_state.login, user_state.password),
+            "SELECT login FROM USERS WHERE login=?",
+            (user_state.login,),
         )
         res = cur.fetchone()
         cur.close()
@@ -122,15 +124,15 @@ class DatabaseController:
         cur = self.connection.cursor()
 
         cur.execute(
-            "DELETE FROM USERS WHERE login=? AND password=?",
-            (user_state.login, user_state.password),
+            "DELETE FROM USERS WHERE login=?",
+            (user_state.login,),
         )
         self.connection.commit()
         cur.close()
 
     # Contacts crud operations
 
-    def add_contact(self, state: UserState, contactLogin: str):
+    def add_contact_deprecated(self, state: UserState, contactLogin: str):
         if not self.user_exists(state):
             raise DatabaseControllerException(
                 "Cannot add contact to not existing user!!!"
@@ -150,6 +152,141 @@ class DatabaseController:
 
         self.connection.commit()
         cur.close()
+
+    def add_contact(
+        self,
+        state: UserState,
+        contactLogin: str,
+        b64_id_key: str,
+        shared_key: str,
+        /,
+        contact_signed_pre_key: Optional[str] = None,
+        contact_ephemeral_key: Optional[str] = None,
+        my_ephemeral_key: Optional[str] = None,
+        contact_otk_key: Optional[str] = None,
+        my_otk_key: Optional[str] = None,
+    ) -> bool:
+        if not self.user_exists(state):
+            raise DatabaseControllerException(
+                "Cannot add contact to not existing user!!!"
+            )
+
+        if state.login == contactLogin:
+            raise DatabaseControllerException(
+                "Cannot add self to the contacts!!!"
+            )
+        
+        """
+        The additional parameters can 
+        be added in only two ways:
+
+            * Adding the establisher (aka this
+            will be added if YOU send friend request to
+            someone)
+            {
+                contact_signed_pre_key (public)
+                my_emphemeral_key (private),
+                contact_otk_key (public)
+            }
+
+            * Adding the guest (aka YOU opened app
+            and you got pending friend request,
+            this set of data will be then
+            added)
+            {
+                contact_ephemeral_key (public),
+                my_otk_key (private)
+            }
+        """
+
+        if self.get_contact_info(state, contactLogin) is not None:
+            return False
+
+        # now checking if params are following above
+        # specs
+        if not (guest := all([
+            contact_signed_pre_key is not None, 
+            my_ephemeral_key is not None,
+            contact_otk_key is not None,
+            # not set
+            contact_ephemeral_key is None,
+            my_otk_key is None
+            ])) and not ( estab := all([
+            contact_ephemeral_key is not None,
+            my_otk_key is not None,
+            # not set
+            contact_signed_pre_key is None, 
+            my_ephemeral_key is None,
+            contact_otk_key is None,
+        ])):
+            print("Guest: ", guest)
+            print("Establisher: ", estab)
+            raise ContactParametersError("passed wrong combination of optional parameters!!")
+            
+        cur = self.connection.cursor()
+
+        # first we check if new contact acctually exists in the db
+        # if yes than we rewrite and return false
+
+        cur.execute(
+            "INSERT INTO CONTACTS "
+            "(owner, login, public_id_key, public_signed_pre_key, "
+            "shared_x3dh_key, my_ephemeral_key, contact_ephemeral_key, "
+            "my_otk_key, contact_otk_key) "
+            "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                state.login,
+                contactLogin,
+                b64_id_key,
+                contact_signed_pre_key,
+                shared_key,
+                my_ephemeral_key,
+                contact_ephemeral_key,
+                my_otk_key,
+                contact_otk_key,
+            ),
+        )
+
+        self.connection.commit()
+        cur.close()
+        return True
+
+    def get_contact_info(self, state:UserState, contact:str) -> Optional[dict]:
+        if not self.user_exists(state):
+            raise DatabaseControllerException(
+                "Given user does not exist"
+            )
+
+        cur = self.connection.cursor()
+
+        cur.execute(
+            "SELECT "
+            "public_id_key, public_signed_pre_key, "
+            "shared_x3dh_key, my_ephemeral_key, contact_ephemeral_key, "
+            "my_otk_key, contact_otk_key "
+            "FROM CONTACTS WHERE "
+            "owner=? AND login=?",
+            (state.login, contact)
+        )
+        
+        res_tuple = cur.fetchone()
+        cur.close()
+
+        if res_tuple is None:
+            return None
+
+        result = {
+            "login" : contact,
+            "public_id_key" : res_tuple[0],
+            "public_signed_pre_key" : res_tuple[0],
+            "shared_x3dh_key" : res_tuple[1],
+            "my_ephemeral_key" : res_tuple[2],
+            "contact_ephemeral_key" : res_tuple[3],
+            "my_otk_key" : res_tuple[4],
+            "contact_otk_key" : res_tuple[5]
+        }
+        return result
+       
 
     def delete_contact(self, user_state: UserState, contactLogin: str):
         if not self.contact_exists(user_state, contactLogin):
@@ -194,13 +331,23 @@ class DatabaseController:
             return []
         return list(map(lambda x: x[0], results))
 
-    def update_user_password(self, password: str):
-        # TODO: create test case for this
-        ...
+    def get_user_otk(self, state: UserState) -> List[str]:
+        if not self.user_exists(state):
+            raise DatabaseControllerException(
+                "Cannot get contacts of not existing user!!!"
+            )
+        cur = self.connection.cursor()
+        cur.execute(
+            "SELECT key FROM ONE_TIME_KEYS WHERE owner=?", (state.login,)
+        )
+        results = list(cur.fetchall())
+        return results
 
     # --- Crypto stuff ---
 
-    def load_user_keys(self, user_state: UserState) -> None:
+    def get_user_keys(
+        self, user_state: UserState
+    ) -> Tuple[X25519PrivateKey, X25519PrivateKey]:
         if not self.user_exists(user_state):
             raise DatabaseControllerException(
                 "Cannot load keys of not existing user"
@@ -209,12 +356,8 @@ class DatabaseController:
         cur = self.connection.cursor()
 
         cur.execute(
-            "SELECT id_key, signed_pre_key FROM USERS "
-            "WHERE login=? AND password=?",
-            (
-                user_state.login,
-                user_state.password,
-            ),
+            "SELECT id_key, signed_pre_key FROM USERS " "WHERE login=?",
+            (user_state.login,),
         )
         result = cur.fetchone()
 
@@ -232,12 +375,9 @@ class DatabaseController:
         id_key_obj = create_private_key_from_b64(b64_id_key)
         signed_pre_key_obj = create_private_key_from_b64(b64_signed_pre_key)
 
-        user_state.id_key = id_key_obj
-        user_state.id_key_b64 = b64_id_key
-        user_state.signed_pre_key = signed_pre_key_obj
-        user_state.signed_pre_key_b64 = b64_signed_pre_key
+        return id_key_obj, signed_pre_key_obj
 
-    def update_user_keys(self, user_state: UserState) -> None:
+    def set_user_keys(self, user_state: UserState) -> None:
         if user_state.id_key is None and user_state.signed_pre_key is None:
             raise DatabaseControllerException(
                 "why would you run this method if you dont do anything?"
@@ -248,8 +388,11 @@ class DatabaseController:
         if user_state.id_key is not None:
             id_key_b64 = create_b64_from_private_key(user_state.id_key)
             cur.execute(
-                "UPDATE USERS SET id_key=? WHERE login=? AND password=?",
-                (id_key_b64, user_state.login, user_state.password),
+                "UPDATE USERS SET id_key=? WHERE login=?",
+                (
+                    id_key_b64,
+                    user_state.login,
+                ),
             )
 
         if user_state.signed_pre_key is not None:
@@ -257,9 +400,11 @@ class DatabaseController:
                 user_state.signed_pre_key
             )
             cur.execute(
-                "UPDATE USERS SET signed_pre_key=?"
-                " WHERE login=? AND password=?",
-                (signed_pre_key_b64, user_state.login, user_state.password),
+                "UPDATE USERS SET signed_pre_key=?" " WHERE login=?",
+                (
+                    signed_pre_key_b64,
+                    user_state.login,
+                ),
             )
 
         self.connection.commit()
@@ -368,15 +513,23 @@ class DatabaseController:
         self, user_state: UserState, index: int
     ) -> Tuple[X25519PrivateKey, X25519PrivateKey]:
         cur = self.connection.cursor()
+
         cur.execute(
-            "SELECT key FROM ONE_TIME_KEYS " "WHERE key_index=? AND owner=?",
+            "SELECT key FROM ONE_TIME_KEYS WHERE key_index=? AND owner=?",
             (index, user_state.login),
         )
-        current_key = create_private_key_from_b64(cur.fetchone()[0])
+
+        result = cur.fetchone()[0]
+        if result is None:
+            raise DatabaseControllerException(
+                "Key at given index does not exist"
+            )
+
+        current_key = create_private_key_from_b64(result)
         new_one_time_key = generate_DH()
 
         cur.execute(
-            "UPDATE ONE_TIME_KEYS SET key=? " "WHERE key_index=? AND owner=?",
+            "UPDATE ONE_TIME_KEYS SET key=? WHERE key_index=? AND owner=?",
             (
                 create_b64_from_private_key(new_one_time_key),
                 index,
