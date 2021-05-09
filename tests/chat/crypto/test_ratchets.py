@@ -1,8 +1,8 @@
-from app.user_state import UserState
+from app.user.user_state import UserState
 from secrets import token_bytes
 from app.config import PREFFERED_ENCODING, SHARED_KEY_LENGTH
 from app.chat.crypto.inner_ratchet import InnerRatchet
-from app.chat.chat_member import ChatMember, ChatMemberException
+from app.chat.crypto_controller import CryptoController, CryptoControllerException
 from app.chat.crypto.ratchet_set import RatchetSet
 import pytest
 
@@ -31,11 +31,11 @@ def test_initialize_ratchets(mocker):
         Testing parameters of ratchets throughout
         the app initialization
     """
-    alice_state = UserState("alice", "password")
-    alice_clone_state = UserState("alice_clone", "dnsajkndjksan")
+    alice_state = UserState("alice")
+    alice_clone_state = UserState("alice_clone")
 
-    alice_chat = ChatMember(alice_state, "dsnkjdsnak", True)
-    alice_clone_chat = ChatMember(alice_clone_state, "cnxzcxzbcmz", True)
+    alice_chat = CryptoController(alice_state, "dsnkjdsnak", True)
+    alice_clone_chat = CryptoController(alice_clone_state, "cnxzcxzbcmz", True)
     exp_shared_key = token_bytes(SHARED_KEY_LENGTH)
 
     """
@@ -89,12 +89,12 @@ def test_initialize_ratchets(mocker):
 
 
 def test_initialize_symmetric_ratchets():
-    alice_state = UserState("alice", "password")
-    bob_state = UserState("bob", "password")
+    alice_state = UserState("alice")
+    bob_state = UserState("bob")
     exp_shared_key = token_bytes(SHARED_KEY_LENGTH)
 
-    alice = ChatMember(alice_state, "ewiqoeoiq", True)
-    bob = ChatMember(bob_state, "alicejksndka", False)
+    alice = CryptoController(alice_state, "ewiqoeoiq", True)
+    bob = CryptoController(bob_state, "alicejksndka", False)
 
     alice.initialize_symmertic_ratchets(exp_shared_key)
     bob.initialize_symmertic_ratchets(exp_shared_key)
@@ -111,14 +111,14 @@ def test_dh_ratchet_creation():
     Testing if the public keyes are properly generated
     and Diffie-Hellman is turning correctly
     """
-    alice_state = UserState("alice", "password")
-    bob_state = UserState("bob", "password")
+    alice_state = UserState("alice")
+    bob_state = UserState("bob")
     exp_shared_key = token_bytes(SHARED_KEY_LENGTH)
 
-    alice = ChatMember(alice_state, "ewiqoeoiq", True)
+    alice = CryptoController(alice_state, "ewiqoeoiq", True)
     alice.initialize_symmertic_ratchets(exp_shared_key)
 
-    bob = ChatMember(bob_state, "alicejksndka", False)
+    bob = CryptoController(bob_state, "alicejksndka", False)
     bob.initialize_symmertic_ratchets(exp_shared_key)
 
     """
@@ -154,13 +154,13 @@ def test_dh_ratchet_creation():
 
 
 def test_send_recieve_alice_first(mocker):
-    alice_state = UserState("alice", "password")
-    bob_state = UserState("bob", "password")
+    alice_state = UserState("alice")
+    bob_state = UserState("bob")
     exp_shared_key = token_bytes(SHARED_KEY_LENGTH)
 
     # I transaction: Initiator sets the send ratchet first
-    alice = ChatMember(alice_state, "ewiqoeoiq", True)
-    bob = ChatMember(bob_state, "alicejksndka", False)
+    alice = CryptoController(alice_state, "ewiqoeoiq", True)
+    bob = CryptoController(bob_state, "alicejksndka", False)
 
     mocker.patch(
         "app.database.db_controller.DatabaseController.ratchets_present",
@@ -185,8 +185,8 @@ def test_send_recieve_alice_first(mocker):
     Alice sends the message first so she must ensure that
     the dh ratchet is turned
     """
-    msg1 = "wysyłam messydź, ==+-()@#$ Żółśćśńź".encode(PREFFERED_ENCODING)
-    msg3 = "elo elo 320 dsjandjksan".encode(PREFFERED_ENCODING)
+    msg1 = "L’homme est condamné à être libre".encode(PREFFERED_ENCODING)
+    msg3 = "Je visite un point de pharmacie".encode(PREFFERED_ENCODING)
 
     """
     NOTE:
@@ -198,7 +198,7 @@ def test_send_recieve_alice_first(mocker):
         - dh_ratchet - is derived from dh exchange and root_ratchet turn output
     """
     enc = alice.encrypt(msg1)
-    msg2 = bob.decrypt(enc, public_key=alice.get_dh_public_key(), initial=True)
+    msg2 = bob.decrypt(enc, public_key=alice.get_dh_public_key())
 
     assert msg1 == msg2
 
@@ -208,7 +208,7 @@ def test_send_recieve_alice_first(mocker):
     assert msg1 == msg2
 
     enc = bob.encrypt(msg3)
-    msg4 = alice.decrypt(enc, public_key=bob.get_dh_public_key(), initial=True)
+    msg4 = alice.decrypt(enc, public_key=bob.get_dh_public_key())
 
     assert msg3 == msg4
 
@@ -219,13 +219,13 @@ def test_send_recieve_alice_second(mocker):
     of initializing the conversation parties.
     Now the bob is initialized FIRST
     """
-    alice_state = UserState("alice", "password")
-    bob_state = UserState("bob", "password")
+    alice_state = UserState("alice")
+    bob_state = UserState("bob")
     exp_shared_key = token_bytes(SHARED_KEY_LENGTH)
 
     # DIFFRENCE IS THE SECOND ARGUMENT VALUE
-    alice = ChatMember(alice_state, "ewiqoeoiq", False)
-    bob = ChatMember(bob_state, "alicejksndka", True)
+    alice = CryptoController(alice_state, "ewiqoeoiq", False)
+    bob = CryptoController(bob_state, "alicejksndka", True)
 
     mocker.patch(
         "app.database.db_controller.DatabaseController.ratchets_present",
@@ -270,13 +270,13 @@ def test_should_desynchronize_when_bad_initiator(mocker):
     matters, so in the result the message should
     be messed up
     """
-    alice_state = UserState("alice", "password")
-    bob_state = UserState("bob", "password")
+    alice_state = UserState("alice")
+    bob_state = UserState("bob")
     exp_shared_key = token_bytes(SHARED_KEY_LENGTH)
 
     # THE ONLY DIFFRENCE IS THE SECOND ARGUMENT VALUE
-    alice = ChatMember(alice_state, "ewiqoeoiq", True)
-    bob = ChatMember(bob_state, "alicejksndka", False)
+    alice = CryptoController(alice_state, "ewiqoeoiq", True)
+    bob = CryptoController(bob_state, "alicejksndka", False)
 
     mocker.patch(
         "app.database.db_controller.DatabaseController.ratchets_present",
@@ -295,7 +295,7 @@ def test_should_desynchronize_when_bad_initiator(mocker):
     msg1 = "ndsjkankdsak".encode(PREFFERED_ENCODING)
     enc = alice.encrypt(msg1)
 
-    with pytest.raises(ChatMemberException):
+    with pytest.raises(CryptoControllerException):
         bob.decrypt(enc)
 
     alice.my_turn = True
@@ -305,5 +305,5 @@ def test_should_desynchronize_when_bad_initiator(mocker):
 
     # double synchonization -> should fail
     alice.rotate_dh_ratchet(bob.get_dh_public_key())
-    with pytest.raises(ChatMemberException):
+    with pytest.raises(CryptoControllerException):
         alice.rotate_dh_ratchet(bob.get_dh_public_key())
