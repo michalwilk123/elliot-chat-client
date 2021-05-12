@@ -65,7 +65,6 @@ class ApiController:
         return self._url
 
     async def end(self):
-
         await self.client_session.close()
 
     async def server_task(self):
@@ -76,7 +75,7 @@ class ApiController:
             await self.resolve_new_contacts(),
             await asyncio.sleep(FETCH_DELAY_PERIOD)
 
-    async def create_user(self):
+    async def estabish_self_to_server(self):
         user_model = {
             "login": self.user_state.login,
             "public_id_key": create_b64_from_public_key(
@@ -99,13 +98,7 @@ class ApiController:
                 print(await resp.text())
                 raise ApiControllerException("Could not add user!!")
 
-        otk_keys = self.db_controller.get_user_otk(self.user_state)
-        otk_initial = {
-            "login": self.user_state.login,
-            "signature": self.user_state.signature,
-            "num_of_keys": MAX_ONE_TIME_KEYS,
-            "one_time_public_keys": otk_keys,
-        }
+    async def establish_initial_otk(self, otk_initial: dict):
         async with self.client_session.post(
             self._url + ApiRoutes.ONE_TIME_KEY, json=otk_initial
         ) as resp:
@@ -117,6 +110,21 @@ class ApiController:
             else:
                 print("Could not setup otk keys")
                 print(await resp.text())
+
+    async def create_user(self):
+        await self.estabish_self_to_server()
+        otk_keys = self.db_controller.get_user_otk(self.user_state)
+        assert (
+            len(otk_keys) == MAX_ONE_TIME_KEYS
+        ), "Otk keys are not initialized!!"
+
+        otk_initial = {
+            "login": self.user_state.login,
+            "signature": self.user_state.signature,
+            "num_of_keys": MAX_ONE_TIME_KEYS,
+            "one_time_public_keys": otk_keys,
+        }
+        await self.establish_initial_otk(otk_initial)
 
     def approve_new_contact(self, invite: dict) -> str:
         curr_otk, new_otk = self.db_controller.replace_one_time_key(
@@ -146,16 +154,17 @@ class ApiController:
             invite["public_id_key"],
             binascii.b2a_base64(shared_key).decode(PREFFERED_ENCODING),
             contact_ephemeral_key=invite["public_ephemeral_key"],
-            my_otk_key=create_b64_from_private_key(curr_otk).decode(PREFFERED_ENCODING)
+            my_otk_key=create_b64_from_private_key(curr_otk).decode(
+                PREFFERED_ENCODING
+            ),
         )
         return new_otk_b64
 
     async def send_friend_request(self, invite: dict):
-
-        async with self.client_session.post(self._url + ApiRoutes.CONTACT_OPER, json=invite) as resp:
+        async with self.client_session.post(
+            self._url + ApiRoutes.CONTACT_OPER, json=invite
+        ) as resp:
             result = await resp.json()
-
-
 
     async def resolve_new_contacts(self):
         params = {

@@ -42,7 +42,7 @@ class AppController:
     def __init__(self, db_path: str = DEFAULT_DB_PATH):
         self._url = SERVER_URL
         self.resolve_startup()
-        self.db_controller = DatabaseController()
+        self.db_controller = DatabaseController(DB_PATH=db_path)
         self._db_path = db_path
 
     def choose_reciever(self) -> Optional[str]:
@@ -67,7 +67,13 @@ class AppController:
 
         init(autoreset=True)
 
-    def start(self):
+    def spin_async_event_loop(self):
+        loop = asyncio.get_event_loop()
+        serv_task = loop.create_task(self.api_controller.server_task())
+        loop.run_until_complete(self.main_menu())
+        serv_task.cancel()
+
+    def start(self, start_session: bool = True):
         utilities.startup()
         login = utilities.get_credentials()
 
@@ -84,23 +90,13 @@ class AppController:
         # resolve_user_state(self.user_state, self._db_path)
 
         self.api_controller = ApiController(
-            self.user_state, self.db_controller, register_user=not user_exist
+            self.user_state,
+            self.db_controller,
+            register_user=not user_exist,
+            init_session=start_session,
         )
 
-        loop = asyncio.get_event_loop()
-        serv_task = loop.create_task(self.api_controller.server_task())
-        loop.run_until_complete(self.main_menu())
-        serv_task.cancel()
-
-        """
-        tutaj powinien sie tworzyc event loop
-        i powinien od razu podpiac taska z establisherem
-
-        Oprócz tego powinien byc rowniez podpiety
-        task z samą aplikacja
-
-        !!!!! USUN WEBSOCKETS !!!!!
-        """
+        self.spin_async_event_loop()
 
     async def main_menu(self):
         while True:
@@ -140,7 +136,7 @@ class AppController:
     async def add_contact(self, contact: str):
         if not await self.api_controller.check_contact(contact):
             raise ContactNotFoundException()
-        
+
         self.api_controller.contact = contact
 
         contact_info, (one_time_key, otk_idx) = await asyncio.gather(
@@ -169,7 +165,7 @@ class AppController:
         await self.api_controller.send_friend_request(
             {
                 "my_login": self.user_state.login,
-                "signature" : self.user_state.signature,
+                "signature": self.user_state.signature,
                 "contact_login": contact,
                 "public_id_key": create_b64_from_public_key(
                     self.user_state.id_key.public_key()
@@ -187,8 +183,14 @@ class AppController:
         shared_key = create_shared_key_X3DH_guest(
             self.user_state.id_key,
             ephemeral_key,
-            create_public_key_from_b64(contact_info["public_id_key"].encode(PREFFERED_ENCODING)),
-            create_public_key_from_b64(contact_info["public_signed_pre_key"].encode(PREFFERED_ENCODING)),
+            create_public_key_from_b64(
+                contact_info["public_id_key"].encode(PREFFERED_ENCODING)
+            ),
+            create_public_key_from_b64(
+                contact_info["public_signed_pre_key"].encode(
+                    PREFFERED_ENCODING
+                )
+            ),
             create_public_key_from_b64(
                 one_time_key.encode(PREFFERED_ENCODING)
             ),
@@ -203,6 +205,6 @@ class AppController:
             my_ephemeral_key=create_b64_from_private_key(ephemeral_key).decode(
                 PREFFERED_ENCODING
             ),
-            contact_otk_key=one_time_key
+            contact_otk_key=one_time_key,
         )
         print(f"You have send {contact} an invite")

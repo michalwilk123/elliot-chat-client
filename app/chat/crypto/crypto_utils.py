@@ -11,7 +11,6 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.padding import PKCS7
 from app.config import HASH_SALT, AEAD_NONCE, BLOCK_SIZE, SHARED_KEY_LENGTH
 import binascii
-from typing import Dict
 
 
 def generate_DH() -> X25519PrivateKey:
@@ -117,20 +116,6 @@ def create_shared_key_X3DH_establisher(
 
 
 # --- HELPER FUNCTIONS
-
-
-def create_header(
-    public_key: X25519PublicKey, key_length: int, message_num: int
-) -> Dict:
-    return {
-        "public_key": create_b64_from_public_key(public_key),
-        "keylen": key_length,
-        "number": message_num,
-    }
-
-
-def concatenate_msg(message: bytes, header: Dict) -> bytes:
-    ...
 
 
 def private_key_to_bytes(key: X25519PrivateKey) -> bytes:
