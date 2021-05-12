@@ -1,5 +1,5 @@
 ## Elliot
-#### Hacker like communicator with implemented Signal protocol
+#### Hacker like communicator with implemented Signal protocol written in python
 
 ---
 <br/>
@@ -15,12 +15,12 @@ the TV Series: MR. ROBOT.
 
 User has access to the cli interface coloured with as much as 16 colours!!
 
-Project under the hood is using another project: [Xavier]() as a simple REST API which 
+Project under the hood is using another project: [Xavier](https://github.com/michalwilk123/xavier-chat-server) a simple REST API which 
 is resposible for transporting the messages themselves over the internet.
 
 ---
 
-Project depends on only few dependancies:
+Project depends on only a few dependancies:
 * [aiohttp](https://github.com/aio-libs/aiohttp) - websocket connection, 
     fetching periodical data, registering users
 * [cryptography](https://github.com/pyca/cryptography) - symmetric/asymetric encryption 
@@ -30,4 +30,4 @@ Project depends on only few dependancies:
 
 The very important feature for me was that the project can run on linux and on very
 limited terminal of windows. Currently only works on linux but support
-for windows is planned.
+for windows is planned in the future.
