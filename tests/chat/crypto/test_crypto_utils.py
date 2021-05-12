@@ -112,7 +112,7 @@ def mask_api_controller(
     bob_idk: X25519PublicKey,
     bob_spk: X25519PublicKey,
     bob_otk: X25519PublicKey,
-    chosen_otk_idx:int
+    chosen_otk_idx: int,
 ):
     async def mocked_con_check(contact):
         assert type(contact) == str, "contact must be a string!!"
@@ -210,7 +210,12 @@ async def test_full_x3dh(mocker):
     assert (
         bob_state.id_key is not None and bob_state.signed_pre_key is not None
     ), "Bob has not initialized his keys"
-    bob_otk_keys = bob_app_controller.db_controller.get_user_otk(bob_state)
+
+    bob_otk_keys = []
+
+    for k in bob_app_controller.db_controller.get_user_otk(bob_state):
+        kk = create_b64_from_public_key(create_private_key_from_b64(k).public_key())
+        bob_otk_keys.append(kk)
 
     async def mocked_server_registration():
         return None
@@ -244,19 +249,19 @@ async def test_full_x3dh(mocker):
 
     await bob_app_controller.api_controller.create_user()
 
+
     ALICE_OTK_INDEX = 2
 
     mask_api_controller(
         mocker,
         bob_state.id_key.public_key(),
         bob_state.signed_pre_key.public_key(),
-        create_public_key_from_b64(
-            bob_otk_keys[ALICE_OTK_INDEX]
-        ),
-        ALICE_OTK_INDEX
+        create_public_key_from_b64(bob_otk_keys[ALICE_OTK_INDEX]),
+        ALICE_OTK_INDEX,
     )
 
     invite = {}
+    alice_ephemeral = None
 
     async def mocked_friend_request(schema):
         assert set(schema.keys()) == {
@@ -269,7 +274,21 @@ async def test_full_x3dh(mocker):
         }
         nonlocal invite
         invite = schema
-
+        assert schema["my_login"] == ALICE_LOGIN, "You passed wrong login"
+        assert (
+            schema["signature"] == alice_app_controller.user_state.signature
+        ), "Alice passed bad signature"
+        assert (
+            schema["contact_login"] == BOB_LOGIN
+        ), "alice contacted wrong person!!"
+        assert schema["public_id_key"] == create_b64_from_public_key(
+            alice_app_controller.user_state.id_key.public_key()
+        ).decode(PREFFERED_ENCODING)
+        assert (
+            schema["otk_index"] == ALICE_OTK_INDEX
+        ), "You have chosen wrong index"
+        nonlocal alice_ephemeral
+        alice_ephemeral = schema["public_ephemeral_key"]
 
     mocker.patch(
         "app.api.api_controller.ApiController.send_friend_request",
@@ -285,20 +304,20 @@ async def test_full_x3dh(mocker):
     is designed to handle such cases
     """
 
-    alice_shared_secret, _ = (
-        alice_app_controller.db_controller.load_chat_init_variables(
-            alice_app_controller.user_state, BOB_LOGIN
-        )
+    (
+        alice_shared_secret,
+        _,
+    ) = alice_app_controller.db_controller.load_chat_init_variables(
+        alice_app_controller.user_state, BOB_LOGIN
     )
 
-    bob_shared_secret, _ = (
-        bob_app_controller.db_controller.load_chat_init_variables(
-            bob_state, ALICE_LOGIN
-        )
+    (
+        bob_shared_secret,
+        _,
+    ) = bob_app_controller.db_controller.load_chat_init_variables(
+        bob_state, ALICE_LOGIN
     )
-    print("klucz alicji: ", alice_shared_secret)
-    print("klucz bogdana",  bob_shared_secret)
-
     # Finally we check if both shared secrets are equal
-    assert alice_shared_secret == bob_shared_secret, "The end secrets are not equal!!!"
-
+    assert (
+        alice_shared_secret == bob_shared_secret
+    ), "The end secrets are not equal!!!"

@@ -2,6 +2,7 @@ import binascii
 from app.chat.crypto.crypto_utils import (
     create_b64_from_private_key,
     create_b64_from_public_key,
+    create_private_key_from_b64,
     create_public_key_from_b64,
     create_shared_key_X3DH_establisher,
 )
@@ -113,7 +114,14 @@ class ApiController:
 
     async def create_user(self):
         await self.estabish_self_to_server()
-        otk_keys = self.db_controller.get_user_otk(self.user_state)
+        
+        otk_keys = []
+        for priv_key in self.db_controller.get_user_otk(self.user_state):
+            otk_keys.append(
+                create_b64_from_public_key(create_private_key_from_b64(priv_key).public_key())
+            )
+            
+
         assert (
             len(otk_keys) == MAX_ONE_TIME_KEYS
         ), "Otk keys are not initialized!!"
@@ -139,6 +147,8 @@ class ApiController:
             or self.user_state.signed_pre_key is None
         ):
             raise ApiControllerException("All user keys must be present!")
+
+        print("BOGDAN OTK KEY: ", create_b64_from_public_key(curr_otk.public_key()))
 
         shared_key = create_shared_key_X3DH_establisher(
             self.user_state.id_key,
