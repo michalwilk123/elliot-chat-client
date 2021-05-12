@@ -1,3 +1,5 @@
+from app.api.response_type import ResponseType
+from app.app_controller import AppController
 from app.user.user_state import UserState
 from secrets import token_bytes
 from app.config import PREFFERED_ENCODING, SHARED_KEY_LENGTH
@@ -8,6 +10,16 @@ from app.chat.crypto_controller import (
 )
 from app.chat.crypto.ratchet_set import RatchetSet
 import pytest
+import os
+from app.chat.crypto.crypto_utils import (
+    create_b64_from_private_key,
+    create_b64_from_public_key,
+    create_shared_key_X3DH_establisher,
+    create_shared_key_X3DH_guest,
+    generate_DH,
+)
+from app.database.db_controller import DatabaseController
+import binascii
 
 TEST_DB_PATH = "test_user.db"
 
@@ -148,13 +160,6 @@ def test_dh_ratchet_creation():
     bob.rotate_dh_ratchet(alice.get_dh_public_key())
     assert bob_r_set.recv_ratchet.turn() == alice_r_set.send_ratchet.turn()
 
-    # assert bob_r_set.root_ratchet.get_snapshot() \
-    # == alice_r_set.root_ratchet.get_snapshot()
-    """
-    NOTE: From the design the root_ratchet will always
-    be diffrent on the 2 sides of conversation
-    """
-
 
 def test_send_recieve_alice_first(mocker):
     alice_state = UserState("alice")
@@ -245,9 +250,6 @@ def test_send_recieve_alice_second(mocker):
 
     msg1 = "wysyłam messydź, ==+-()@#$ Żółśćśńź".encode(PREFFERED_ENCODING)
 
-    # Since bob is an intiator -> he has to turn his dh_ratchet
-    bob.rotate_dh_ratchet(alice.get_dh_public_key())
-
     """
     NOTE: As you can see, we did not turn the bob dh_ratchet
     before recieving the message from alice, thats because bob
@@ -312,5 +314,136 @@ def test_should_desynchronize_when_bad_initiator(mocker):
         alice.rotate_dh_ratchet(bob.get_dh_public_key())
 
 
-def test_continue_conversation(mocker):
-    assert False
+def test_x3dh_double_ratchet_integration(mocker):
+    """
+    We perform the same operation as above but now
+    the shared key is genereted by the application
+    and database controller is not mocked this time
+    """
+    if os.path.exists(TEST_DB_PATH):
+        os.remove(TEST_DB_PATH)
+
+    ALICE_LOGIN = "alice"
+    BOB_LOGIN = "bob"
+
+    alice_state = UserState(ALICE_LOGIN)
+    bob_state = UserState(BOB_LOGIN)
+
+    db_controller = DatabaseController(TEST_DB_PATH)
+    db_controller.create_user(alice_state)
+    db_controller.create_user(bob_state)
+
+    alice_emphem = generate_DH()
+    bob_otk = generate_DH()
+
+    assert alice_state.id_key is not None, "Alice priv key is not set!"
+    assert bob_state.signed_pre_key is not None, "Bob spk key is not set!"
+    assert bob_state.id_key is not None, "Bob priv key is not set!"
+
+    shared_alice_secret = create_shared_key_X3DH_guest(
+        alice_state.id_key,
+        alice_emphem,
+        bob_state.id_key.public_key(),
+        bob_state.signed_pre_key.public_key(),
+        bob_otk.public_key(),
+    )
+
+    shared_bob_secret = create_shared_key_X3DH_establisher(
+        bob_state.id_key,
+        bob_state.signed_pre_key,
+        bob_otk,
+        alice_state.id_key.public_key(),
+        alice_emphem.public_key(),
+    )
+
+    # sanity check
+    assert shared_alice_secret == shared_bob_secret, "keys must be equal!!"
+
+    db_controller.add_contact(
+        alice_state,
+        BOB_LOGIN,
+        create_b64_from_public_key(bob_state.id_key.public_key()).decode(
+            PREFFERED_ENCODING
+        ),
+        binascii.b2a_base64(shared_alice_secret).decode(PREFFERED_ENCODING),
+        contact_signed_pre_key=create_b64_from_public_key(
+            bob_state.signed_pre_key.public_key()
+        ).decode(PREFFERED_ENCODING),
+        my_ephemeral_key=create_b64_from_private_key(alice_emphem).decode(
+            PREFFERED_ENCODING
+        ),
+        contact_otk_key=create_b64_from_public_key(
+            bob_otk.public_key()
+        ).decode(PREFFERED_ENCODING),
+    )
+
+    db_controller.add_contact(
+        bob_state,
+        ALICE_LOGIN,
+        create_b64_from_public_key(alice_state.id_key.public_key()).decode(
+            PREFFERED_ENCODING
+        ),
+        binascii.b2a_base64(shared_bob_secret).decode(PREFFERED_ENCODING),
+        contact_ephemeral_key=create_b64_from_public_key(
+            alice_emphem.public_key()
+        ).decode(PREFFERED_ENCODING),
+        my_otk_key=create_b64_from_private_key(bob_otk).decode(
+            PREFFERED_ENCODING
+        ),
+    )
+
+    """
+    We did not defined who's turn it is. Thats because
+    such information should be retrieved from the database!!!
+    """
+    alice_crypto_con = CryptoController(alice_state, BOB_LOGIN, DB_PATH=TEST_DB_PATH)
+    bob_crypto_con = CryptoController(bob_state, ALICE_LOGIN, DB_PATH=TEST_DB_PATH)
+
+
+    alice_crypto_con.init_ratchets(opt_public_key=bob_state.signed_pre_key.public_key())
+    bob_crypto_con.init_ratchets(opt_private_key=bob_state.signed_pre_key)
+
+    # more sanity checks
+    assert alice_crypto_con.my_turn == False, "This values should change!!!"
+    assert bob_crypto_con.my_turn == True, "This value should change"
+
+    alice_msg = "L’homme est condamné à être libre."
+    message_for_bob = alice_crypto_con.encrypt_to_json_message(alice_msg)
+    digested_msg = bob_crypto_con.decrypt_json_message(message_for_bob)
+
+    alice_msg = "Lorem ipsum dolor sit amet, consectetur adipiscing elit"
+    message_for_bob = alice_crypto_con.encrypt_to_json_message(alice_msg)
+    digested_msg = bob_crypto_con.decrypt_json_message(message_for_bob)
+
+    # if this passes then ratchets are not moving preemptively
+    assert alice_msg == digested_msg, "Second message failed to send"
+
+    # Now Bob responds to alice
+    bob_message = "k bro"
+    message_for_alice = bob_crypto_con.encrypt_to_json_message(bob_message)
+    digested_msg = alice_crypto_con.decrypt_json_message(message_for_alice)
+
+    # if this passes then ratchets are not moving when they should
+    assert bob_message == digested_msg, "Response failed to decrypt"
+
+
+
+@pytest.mark.asyncio
+async def test_continue_conversation(mocker):
+    """
+    Scenario: Alice had send to Bob friend request
+    Both parties performed x3dh and are possessing shared secret.
+
+    Now Alice sends to bob message and intializes
+    conversation inside the application
+    """
+    shared_key = b"some secret key"
+
+    if os.path.exists(TEST_DB_PATH):
+        os.remove(TEST_DB_PATH)
+
+    ALICE_LOGIN = "alice"
+    BOB_LOGIN = "bob"
+
+    alice_app_controller = AppController(db_path=TEST_DB_PATH)
+    bob_app_controller = AppController(db_path=TEST_DB_PATH)

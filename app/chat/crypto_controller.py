@@ -5,6 +5,7 @@ from .crypto.crypto_utils import (
     aead_decrypt,
     aead_encrypt,
     create_b64_from_public_key,
+    create_public_key_from_b64,
     generate_DH,
 )
 from app.user.user_state import UserState
@@ -48,9 +49,15 @@ class CryptoController:
         self.contact = contact
         self.db_path = DB_PATH
 
-    def init_ratchets(self):
+    def init_ratchets(
+        self,
+        /,
+        opt_public_key: Optional[X25519PublicKey] = None,
+        opt_private_key: Optional[X25519PrivateKey] = None,
+    ):
         """
-        Checks if old ratchets are present. If not
+        Checks if old ratchets are present. If not it creates them
+        for later use
         """
 
         db_controller = DatabaseController(DB_PATH=self.db_path)
@@ -59,6 +66,9 @@ class CryptoController:
             self.ratchet_set = db_controller.load_ratchets(
                 self.user_state, self.contact
             )
+            assert (
+                opt_private_key is None and opt_public_key is None
+            ), "You should not preemptively turn when you got initialized ratchets!"
         else:
             # this will run for the first time the users are connected
             shared_key, my_turn = db_controller.load_chat_init_variables(
@@ -66,13 +76,21 @@ class CryptoController:
             )
             if self.my_turn is not None:
                 self.my_turn = my_turn
+            else:
+                self.my_turn = my_turn
 
-            self.initialize_symmertic_ratchets(shared_key)
+            self.initialize_symmertic_ratchets(shared_key, opt_public_key=opt_public_key, opt_private_key=opt_private_key)
 
     def get_ratchet_set(self) -> RatchetSet:
         return self.ratchet_set
 
-    def initialize_symmertic_ratchets(self, shared_key: bytes) -> None:
+    def initialize_symmertic_ratchets(
+        self,
+        shared_key: bytes,
+        /,
+        opt_public_key: Optional[X25519PublicKey] = None,
+        opt_private_key: Optional[X25519PrivateKey] = None,
+    ) -> None:
         """
         Initializing symmetric ratchets:
             send_ratchet, recv_ratchet, root_ratchet
@@ -82,6 +100,8 @@ class CryptoController:
         r_set = RatchetSet()
         r_set.root_ratchet = InnerRatchet(shared_key)
 
+        assert self.my_turn is not None, "The order of intitialization must be resolved"
+
         if self.my_turn:
             """
             If it is our turn to initialize ratchets we create
@@ -89,11 +109,23 @@ class CryptoController:
             """
             r_set.send_ratchet = InnerRatchet(r_set.root_ratchet.turn()[0])
             r_set.recv_ratchet = InnerRatchet(r_set.root_ratchet.turn()[0])
+
+            # initializing preemptive turn
+            if opt_public_key is not None:
+                self.ratchet_set = r_set
+                self.rotate_dh_ratchet(opt_public_key)
+
+            assert opt_private_key is None, "Bad initialization!!"
         else:
             r_set.recv_ratchet = InnerRatchet(r_set.root_ratchet.turn()[0])
             r_set.send_ratchet = InnerRatchet(r_set.root_ratchet.turn()[0])
-            r_set.dh_ratchet = generate_DH()
             self.my_turn = True
+
+            if opt_private_key is not None:
+                r_set.dh_ratchet = opt_private_key
+            else:
+                r_set.dh_ratchet = generate_DH()
+            assert opt_public_key is None, "Bad initialization!!"
 
         self.ratchet_set = r_set
 
@@ -135,6 +167,8 @@ class CryptoController:
     ) -> bytes:
         if public_key is not None:
             self.rotate_dh_ratchet(public_key)
+        else:
+            assert public_key is None, "Passed the public key without any reason"
 
         root_key, chain_key = self.ratchet_set.recv_ratchet.turn()
 
@@ -195,10 +229,11 @@ class CryptoController:
             )
 
         if header["message_type"] == ResponseType.TEXT_MESSAGE:
-            # if self.my_turn:
             decr_msg = self.decrypt(
-                body["content"],
-                public_key=message["public_key"] if self.my_turn else None,
+                binascii.a2b_base64(body["content"]),
+                public_key=create_public_key_from_b64(body["public_key"])
+                if self.my_turn
+                else None,
             )
             return decr_msg.decode(PREFFERED_ENCODING)
         else:
