@@ -16,6 +16,7 @@ import binascii
 class DatabaseControllerException(Exception):
     ...
 
+
 class ContactParametersError(Exception):
     ...
 
@@ -132,27 +133,6 @@ class DatabaseController:
 
     # Contacts crud operations
 
-    def add_contact_deprecated(self, state: UserState, contactLogin: str):
-        if not self.user_exists(state):
-            raise DatabaseControllerException(
-                "Cannot add contact to not existing user!!!"
-            )
-
-        if state.login == contactLogin:
-            raise DatabaseControllerException(
-                "Cannot add self to the contacts!!!"
-            )
-
-        cur = self.connection.cursor()
-
-        cur.execute(
-            "INSERT INTO CONTACTS (owner, login) VALUES ( ?, ?)",
-            (state.login, contactLogin),
-        )
-
-        self.connection.commit()
-        cur.close()
-
     def add_contact(
         self,
         state: UserState,
@@ -175,7 +155,7 @@ class DatabaseController:
             raise DatabaseControllerException(
                 "Cannot add self to the contacts!!!"
             )
-        
+
         """
         The additional parameters can 
         be added in only two ways:
@@ -204,25 +184,33 @@ class DatabaseController:
 
         # now checking if params are following above
         # specs
-        if not (guest := all([
-            contact_signed_pre_key is not None, 
-            my_ephemeral_key is not None,
-            contact_otk_key is not None,
-            # not set
-            contact_ephemeral_key is None,
-            my_otk_key is None
-            ])) and not ( estab := all([
-            contact_ephemeral_key is not None,
-            my_otk_key is not None,
-            # not set
-            contact_signed_pre_key is None, 
-            my_ephemeral_key is None,
-            contact_otk_key is None,
-        ])):
-            print("Guest: ", guest)
-            print("Establisher: ", estab)
-            raise ContactParametersError("passed wrong combination of optional parameters!!")
-            
+        if all(
+            [
+                contact_signed_pre_key is not None,
+                my_ephemeral_key is not None,
+                contact_otk_key is not None,
+                # not set
+                contact_ephemeral_key is None,
+                my_otk_key is None,
+            ]
+        ):
+            my_turn = True
+        elif all(
+            [
+                contact_ephemeral_key is not None,
+                my_otk_key is not None,
+                # not set
+                contact_signed_pre_key is None,
+                my_ephemeral_key is None,
+                contact_otk_key is None,
+            ]
+        ):
+            my_turn = False
+        else:
+            raise ContactParametersError(
+                "passed wrong combination of optional parameters!!"
+            )
+
         cur = self.connection.cursor()
 
         # first we check if new contact acctually exists in the db
@@ -232,8 +220,8 @@ class DatabaseController:
             "INSERT INTO CONTACTS "
             "(owner, login, public_id_key, public_signed_pre_key, "
             "shared_x3dh_key, my_ephemeral_key, contact_ephemeral_key, "
-            "my_otk_key, contact_otk_key) "
-            "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "my_otk_key, contact_otk_key, my_turn) "
+            "VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 state.login,
                 contactLogin,
@@ -244,6 +232,7 @@ class DatabaseController:
                 contact_ephemeral_key,
                 my_otk_key,
                 contact_otk_key,
+                int(my_turn),
             ),
         )
 
@@ -251,11 +240,11 @@ class DatabaseController:
         cur.close()
         return True
 
-    def get_contact_info(self, state:UserState, contact:str) -> Optional[dict]:
+    def get_contact_info(
+        self, state: UserState, contact: str
+    ) -> Optional[dict]:
         if not self.user_exists(state):
-            raise DatabaseControllerException(
-                "Given user does not exist"
-            )
+            raise DatabaseControllerException("Given user does not exist")
 
         cur = self.connection.cursor()
 
@@ -266,9 +255,9 @@ class DatabaseController:
             "my_otk_key, contact_otk_key "
             "FROM CONTACTS WHERE "
             "owner=? AND login=?",
-            (state.login, contact)
+            (state.login, contact),
         )
-        
+
         res_tuple = cur.fetchone()
         cur.close()
 
@@ -276,17 +265,16 @@ class DatabaseController:
             return None
 
         result = {
-            "login" : contact,
-            "public_id_key" : res_tuple[0],
-            "public_signed_pre_key" : res_tuple[0],
-            "shared_x3dh_key" : res_tuple[1],
-            "my_ephemeral_key" : res_tuple[2],
-            "contact_ephemeral_key" : res_tuple[3],
-            "my_otk_key" : res_tuple[4],
-            "contact_otk_key" : res_tuple[5]
+            "login": contact,
+            "public_id_key": res_tuple[0],
+            "public_signed_pre_key": res_tuple[0],
+            "shared_x3dh_key": res_tuple[1],
+            "my_ephemeral_key": res_tuple[2],
+            "contact_ephemeral_key": res_tuple[3],
+            "my_otk_key": res_tuple[4],
+            "contact_otk_key": res_tuple[5],
         }
         return result
-       
 
     def delete_contact(self, user_state: UserState, contactLogin: str):
         if not self.contact_exists(user_state, contactLogin):
@@ -454,15 +442,19 @@ class DatabaseController:
         return ratchet_set
 
     def save_ratchets(
-        self, user_state: UserState, contact: str, ratchet_set: RatchetSet
+        self,
+        user_state: UserState,
+        contact: str,
+        ratchet_set: RatchetSet,
+        my_turn: bool,
     ) -> None:
         cur = self.connection.cursor()
 
         cur.execute(
             "UPDATE CONTACTS "
-            "SET dh_ratchet=?, send_ratchet=?, recv_ratchet=?, root_ratchet=? "
+            "SET dh_ratchet=?, send_ratchet=?, recv_ratchet=?, root_ratchet=?, my_turn=?"
             "WHERE owner=? AND login=?",
-            (*ratchet_set.get_tuple(), user_state.login, contact),
+            (*ratchet_set.get_tuple(), int(my_turn), user_state.login, contact),
         )
         self.connection.commit()
         cur.close()
@@ -472,7 +464,7 @@ class DatabaseController:
     ) -> Tuple[bytes, bool]:
         cur = self.connection.cursor()
         cur.execute(
-            "SELECT shared_x3dh_key, current_turn FROM CONTACTS "
+            "SELECT shared_x3dh_key, my_turn FROM CONTACTS "
             "WHERE owner=? AND login=?",
             (user_state.login, contact),
         )
@@ -497,7 +489,7 @@ class DatabaseController:
         cur = self.connection.cursor()
         cur.execute(
             "UPDATE CONTACTS "
-            "SET shared_x3dh_key=?, current_turn=? "
+            "SET shared_x3dh_key=?, my_turn=? "
             "WHERE owner=? AND login=?",
             (
                 binascii.b2a_base64(shared_key),
@@ -519,11 +511,15 @@ class DatabaseController:
             (index, user_state.login),
         )
 
-        result = cur.fetchone()[0]
+        result = cur.fetchone()
+
         if result is None:
             raise DatabaseControllerException(
                 "Key at given index does not exist"
             )
+
+        assert len(result) == 1, "There should be an unique key at given index"
+        result = result[0]
 
         current_key = create_private_key_from_b64(result)
         new_one_time_key = generate_DH()

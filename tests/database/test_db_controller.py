@@ -223,7 +223,7 @@ def test_save_load_ratchets(db_init):
     r_set.dh_ratchet = X25519PrivateKey.generate()
 
     db_init.db_controller.save_ratchets(
-        db_init.alice_state, test_contact, r_set
+        db_init.alice_state, test_contact, r_set, True
     )
 
     r_set_out: RatchetSet = db_init.db_controller.load_ratchets(
@@ -298,7 +298,7 @@ def test_ratchets_present(db_init):
 
     r_set.recv_ratchet = InnerRatchet(token_bytes(10))
     db_init.db_controller.save_ratchets(
-        db_init.alice_state, test_contact, r_set
+        db_init.alice_state, test_contact, r_set, True
     )
     assert db_init.db_controller.ratchets_present(
         db_init.alice_state, test_contact
