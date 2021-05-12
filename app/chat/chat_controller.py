@@ -18,9 +18,8 @@ class ChatController:
         self.api_controller = api_controller
         self.crypto_controller = CryptoController(self.user_state, partner)
 
-    def start(self):
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.run_workers())
+    async def start(self):
+        await self.run_workers()
 
     def __del__(self):
         # i know that this code is dumb :/

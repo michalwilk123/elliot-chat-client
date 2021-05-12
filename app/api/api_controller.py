@@ -1,3 +1,4 @@
+from app.chat.crypto_controller import CryptoController
 import binascii
 from app.chat.crypto.crypto_utils import (
     create_b64_from_private_key,
@@ -8,6 +9,7 @@ from app.chat.crypto.crypto_utils import (
 )
 from app.routes import ApiRoutes
 from app.config import (
+    DEFAULT_DB_PATH,
     FETCH_DELAY_PERIOD,
     MAX_ONE_TIME_KEYS,
     PREFFERED_ENCODING,
@@ -34,6 +36,7 @@ class ApiController:
         url: str = SERVER_URL,
         init_session: bool = True,
         register_user: bool = False,
+        db_path: str = DEFAULT_DB_PATH,
     ) -> None:
         self._client_session: Optional[ClientSession] = (
             ClientSession() if init_session else None
@@ -43,6 +46,7 @@ class ApiController:
         self.db_controller = db_controller
         self._contact: Optional[str] = None
         self.register_user = register_user
+        self.db_path = db_path
 
     @property
     def contact(self) -> str:
@@ -114,13 +118,14 @@ class ApiController:
 
     async def create_user(self):
         await self.estabish_self_to_server()
-        
+
         otk_keys = []
         for priv_key in self.db_controller.get_user_otk(self.user_state):
             otk_keys.append(
-                create_b64_from_public_key(create_private_key_from_b64(priv_key).public_key())
+                create_b64_from_public_key(
+                    create_private_key_from_b64(priv_key).public_key()
+                )
             )
-            
 
         assert (
             len(otk_keys) == MAX_ONE_TIME_KEYS
@@ -148,7 +153,10 @@ class ApiController:
         ):
             raise ApiControllerException("All user keys must be present!")
 
-        print("BOGDAN OTK KEY: ", create_b64_from_public_key(curr_otk.public_key()))
+        print(
+            "BOGDAN OTK KEY: ",
+            create_b64_from_public_key(curr_otk.public_key()),
+        )
 
         shared_key = create_shared_key_X3DH_establisher(
             self.user_state.id_key,
@@ -168,7 +176,19 @@ class ApiController:
                 PREFFERED_ENCODING
             ),
         )
+        self.init_ratchet_configuration(invite["my_login"])
+
         return new_otk_b64
+
+    def init_ratchet_configuration(self, login:str):
+        crypto_controller = CryptoController(
+            self.user_state,
+            login,
+            DB_PATH=self.db_path,
+        )
+        crypto_controller.init_ratchets(
+            opt_private_key=self.user_state.signed_pre_key
+        )
 
     async def send_friend_request(self, invite: dict):
         async with self.client_session.post(

@@ -1,3 +1,5 @@
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
+from app.chat.crypto_controller import CryptoController
 import binascii
 from typing import Optional
 
@@ -110,7 +112,7 @@ class AppController:
                     self.api_controller, reciever
                 )
 
-                self.__chat_controller.start()
+                await self.__chat_controller.start()
                 del self.__chat_controller
             elif option == MainMenuOptions.ADD_FRIEND:
                 contact_name = await utilities.get_contact_name()
@@ -132,8 +134,17 @@ class AppController:
 
     async def init_waitroom(self):
         ...
+    
+    def init_ratchet_configuration(self, contact:str, contact_spk:X25519PublicKey):
+        crypto_controller = CryptoController(
+            self.user_state, contact, DB_PATH=self._db_path
+        )
+        crypto_controller.init_ratchets(
+            opt_public_key=contact_spk
+        )
+        
 
-    async def add_contact(self, contact: str):
+    async def add_contact(self, contact: str) -> bool:
         if not await self.api_controller.check_contact(contact):
             raise ContactNotFoundException()
 
@@ -146,11 +157,11 @@ class AppController:
 
         if not contact_info["success"]:
             print("Given contact does not exist!!")
-            return
+            return False
 
         if one_time_key is None:
             print("User has already used up his one time keys.")
-            return
+            return False
 
         contact_info = contact_info["user_data"]
         ephemeral_key = generate_DH()
@@ -207,4 +218,9 @@ class AppController:
             ),
             contact_otk_key=one_time_key,
         )
+
+        # initializing ratchets
+        self.init_ratchet_configuration(contact, create_public_key_from_b64(contact_info["public_signed_pre_key"]))
+
         print(f"You have send {contact} an invite")
+        return True
