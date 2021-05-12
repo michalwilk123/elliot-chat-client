@@ -4,7 +4,7 @@ from app.database.db_controller import DatabaseController
 
 
 def resolve_user_state(user_state: UserState, db_path: str) -> bool:
-    if not user_state_keys_present(user_state):
+    if user_state_keys_present(user_state):
         return False
 
     db_controller = DatabaseController(DB_PATH=db_path)

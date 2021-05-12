@@ -331,7 +331,7 @@ class DatabaseController:
             return []
         return list(map(lambda x: x[0], results))
 
-    def get_user_otk(self, state: UserState) -> List[str]:
+    def get_user_otk(self, state: UserState) -> List[bytes]:
         if not self.user_exists(state):
             raise DatabaseControllerException(
                 "Cannot get contacts of not existing user!!!"
@@ -340,7 +340,7 @@ class DatabaseController:
         cur.execute(
             "SELECT key FROM ONE_TIME_KEYS WHERE owner=?", (state.login,)
         )
-        results = list(cur.fetchall())
+        results = [el[0] for el in cur.fetchall()]
         return results
 
     # --- Crypto stuff ---
