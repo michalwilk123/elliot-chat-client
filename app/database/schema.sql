@@ -23,7 +23,7 @@ CREATE TABLE CONTACTS(
     my_otk_key TEXT,
     contact_otk_key TEXT,
 
-    current_turn INTEGER,
+    my_turn INTEGER,
     approved_user INTEGER,
     FOREIGN KEY(login) REFERENCES USERS(login),
     PRIMARY KEY (owner, login)
