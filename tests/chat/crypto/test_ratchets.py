@@ -2,7 +2,10 @@ from app.user.user_state import UserState
 from secrets import token_bytes
 from app.config import PREFFERED_ENCODING, SHARED_KEY_LENGTH
 from app.chat.crypto.inner_ratchet import InnerRatchet
-from app.chat.crypto_controller import CryptoController, CryptoControllerException
+from app.chat.crypto_controller import (
+    CryptoController,
+    CryptoControllerException,
+)
 from app.chat.crypto.ratchet_set import RatchetSet
 import pytest
 
@@ -307,3 +310,7 @@ def test_should_desynchronize_when_bad_initiator(mocker):
     alice.rotate_dh_ratchet(bob.get_dh_public_key())
     with pytest.raises(CryptoControllerException):
         alice.rotate_dh_ratchet(bob.get_dh_public_key())
+
+
+def test_continue_conversation(mocker):
+    assert False

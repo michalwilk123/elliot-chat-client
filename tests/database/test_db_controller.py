@@ -49,26 +49,27 @@ def test_should_throw_no_user_added(db_init):
 
     with pytest.raises(DatabaseControllerException):
         db_init.db_controller.add_contact(
-            charlie_state, 
+            charlie_state,
             "Carol",
             db_init.b64_id,
             db_init.b64_shared,
             contact_signed_pre_key=db_init.con_spk,
             my_ephemeral_key=db_init.my_ephem,
-            contact_otk_key=db_init.con_otk
+            contact_otk_key=db_init.con_otk,
         )
+
 
 def test_should_throw_data_not_complete(db_init):
 
     with pytest.raises(ContactParametersError):
         db_init.db_controller.add_contact(
-            db_init.alice_state, 
+            db_init.alice_state,
             "Charlie",
             db_init.b64_id,
             db_init.b64_shared,
             my_ephemeral_key=db_init.my_ephem,
-            contact_ephemeral_key = db_init.con_ephem,
-            contact_otk_key=db_init.con_otk
+            contact_ephemeral_key=db_init.con_ephem,
+            contact_otk_key=db_init.con_otk,
         )
 
 
@@ -80,61 +81,64 @@ def test_should_throw_contact_error(db_init):
     # thow exception when trying to add self to the contact list
     with pytest.raises(DatabaseControllerException):
         db_init.db_controller.add_contact(
-            db_init.alice_state, 
+            db_init.alice_state,
             "Alice",
             db_init.b64_id,
             db_init.b64_shared,
             contact_signed_pre_key=db_init.con_spk,
             my_ephemeral_key=db_init.my_ephem,
-            contact_otk_key=db_init.con_otk
+            contact_otk_key=db_init.con_otk,
         )
+
 
 def test_create_contact_guest(db_init):
     assert db_init.db_controller.add_contact(
-        db_init.alice_state, 
+        db_init.alice_state,
         "Bob",
         db_init.b64_id,
         db_init.b64_shared,
         contact_signed_pre_key=db_init.con_spk,
         my_ephemeral_key=db_init.my_ephem,
-        contact_otk_key=db_init.con_otk
+        contact_otk_key=db_init.con_otk,
     )
+
 
 def test_create_contact_estab(db_init):
     assert db_init.db_controller.add_contact(
-        db_init.alice_state, 
+        db_init.alice_state,
         "Bob",
         db_init.b64_id,
         db_init.b64_shared,
         contact_ephemeral_key=db_init.con_ephem,
-        my_otk_key=db_init.con_otk
+        my_otk_key=db_init.con_otk,
     )
+
 
 def test_should_return_false_when_contact_exist(db_init):
     assert db_init.db_controller.add_contact(
-        db_init.alice_state, 
+        db_init.alice_state,
         "Bob",
         db_init.b64_id,
         db_init.b64_shared,
         contact_ephemeral_key=db_init.con_ephem,
-        my_otk_key=db_init.con_otk
+        my_otk_key=db_init.con_otk,
     )
 
     assert not db_init.db_controller.add_contact(
-        db_init.alice_state, 
+        db_init.alice_state,
         "Bob",
         db_init.b64_id,
         db_init.b64_shared,
         contact_ephemeral_key=db_init.con_ephem,
-        my_otk_key=db_init.con_otk
+        my_otk_key=db_init.con_otk,
     )
+
 
 def test_create_user(db_init):
     lee_state = UserState("Lee")
 
     assert db_init.db_controller.user_exists(db_init.alice_state)
     assert not db_init.db_controller.user_exists(lee_state)
-
 
 
 def test_delete_user(db_init):
@@ -152,13 +156,19 @@ def test_should_throw_when_user_does_not_exists(db_init):
 def test_get_contacts(db_init):
     args = db_init.b64_id, db_init.b64_shared
     kwargs = {
-        "contact_ephemeral_key" : db_init.con_ephem,
-        "my_otk_key" : db_init.con_otk
+        "contact_ephemeral_key": db_init.con_ephem,
+        "my_otk_key": db_init.con_otk,
     }
 
-    db_init.db_controller.add_contact(db_init.alice_state, "Bob", *args, **kwargs)
-    db_init.db_controller.add_contact(db_init.alice_state, "Charlie", *args, **kwargs)
-    db_init.db_controller.add_contact(db_init.alice_state, "Oscar", *args, **kwargs)
+    db_init.db_controller.add_contact(
+        db_init.alice_state, "Bob", *args, **kwargs
+    )
+    db_init.db_controller.add_contact(
+        db_init.alice_state, "Charlie", *args, **kwargs
+    )
+    db_init.db_controller.add_contact(
+        db_init.alice_state, "Oscar", *args, **kwargs
+    )
 
     con_list = db_init.db_controller.get_user_contacts(db_init.alice_state)
 
@@ -177,11 +187,15 @@ def test_get_contacts(db_init):
 def test_delete_contact(db_init):
     args = db_init.b64_id, db_init.b64_shared
     kwargs = {
-        "contact_ephemeral_key" : db_init.con_ephem,
-        "my_otk_key" : db_init.con_otk
+        "contact_ephemeral_key": db_init.con_ephem,
+        "my_otk_key": db_init.con_otk,
     }
-    db_init.db_controller.add_contact(db_init.alice_state, "Charlie", *args, **kwargs)
-    db_init.db_controller.add_contact(db_init.alice_state, "Oscar", *args, **kwargs)
+    db_init.db_controller.add_contact(
+        db_init.alice_state, "Charlie", *args, **kwargs
+    )
+    db_init.db_controller.add_contact(
+        db_init.alice_state, "Oscar", *args, **kwargs
+    )
 
     db_init.db_controller.delete_contact(db_init.alice_state, "Charlie")
 
@@ -194,11 +208,13 @@ def test_should_throw_when_deleted_contact_does_not_exists(db_init):
 def test_save_load_ratchets(db_init):
     args = db_init.b64_id, db_init.b64_shared
     kwargs = {
-        "contact_ephemeral_key" : db_init.con_ephem,
-        "my_otk_key" : db_init.con_otk
+        "contact_ephemeral_key": db_init.con_ephem,
+        "my_otk_key": db_init.con_otk,
     }
     test_contact = "Charlie"
-    db_init.db_controller.add_contact(db_init.alice_state, test_contact, *args, **kwargs)
+    db_init.db_controller.add_contact(
+        db_init.alice_state, test_contact, *args, **kwargs
+    )
 
     r_set = RatchetSet()
     r_set.root_ratchet = InnerRatchet(token_bytes(10))
@@ -235,11 +251,13 @@ def test_save_load_init_vars(db_init):
     test_contact = "Charlie"
     args = db_init.b64_id, db_init.b64_shared
     kwargs = {
-        "contact_signed_pre_key" : db_init.con_spk,
-        "my_ephemeral_key" : db_init.my_ephem,
-        "contact_otk_key" : db_init.con_otk
+        "contact_signed_pre_key": db_init.con_spk,
+        "my_ephemeral_key": db_init.my_ephem,
+        "contact_otk_key": db_init.con_otk,
     }
-    db_init.db_controller.add_contact(db_init.alice_state, test_contact,*args, **kwargs)
+    db_init.db_controller.add_contact(
+        db_init.alice_state, test_contact, *args, **kwargs
+    )
 
     test_turn = True
     test_shared = token_bytes(10)
@@ -260,11 +278,13 @@ def test_ratchets_present(db_init):
     test_contact = "Charlie"
     args = db_init.b64_id, db_init.b64_shared
     kwargs = {
-        "contact_signed_pre_key" : db_init.con_spk,
-        "my_ephemeral_key" : db_init.my_ephem,
-        "contact_otk_key" : db_init.con_otk
+        "contact_signed_pre_key": db_init.con_spk,
+        "my_ephemeral_key": db_init.my_ephem,
+        "contact_otk_key": db_init.con_otk,
     }
-    db_init.db_controller.add_contact(db_init.alice_state, test_contact,*args, **kwargs)
+    db_init.db_controller.add_contact(
+        db_init.alice_state, test_contact, *args, **kwargs
+    )
 
     r_set = RatchetSet()
     r_set.root_ratchet = InnerRatchet(token_bytes(10))
