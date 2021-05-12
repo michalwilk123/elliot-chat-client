@@ -13,7 +13,7 @@ PREFFERED_ENCODING = "utf-8"
 
 # crypto constants
 HASH_SALT = "made by wilkueti".encode(PREFFERED_ENCODING)  # NEVER DO THIS!!!
-MAX_ONE_TIME_KEYS = 1
+MAX_ONE_TIME_KEYS = 15
 # length of the keyes is derived from the signal documentation
 SHARED_KEY_LENGTH = 32
 RATCHET_STATE_KEY_LENGTH = 64
