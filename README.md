@@ -1,5 +1,5 @@
 ## Elliot
-#### Hacker like communicator with implemented Signal protocol written in python
+#### Hacker like communicator written in python with Signal End2End encryption system
 
 ---
 <br/>
@@ -10,7 +10,7 @@ _mascot of the project_
 
 --- 
 
-Heavily inspired by the terminal chat communicator visible in 
+Heavily inspired by the chat communicator visible in 
 the TV Series: MR. ROBOT.
 
 User has access to the cli interface coloured with as much as 16 colours!!
