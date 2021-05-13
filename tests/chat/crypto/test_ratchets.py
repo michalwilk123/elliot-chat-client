@@ -1,4 +1,3 @@
-from app.app_controller import AppController
 from app.user.user_state import UserState
 from secrets import token_bytes
 from app.config import PREFFERED_ENCODING, SHARED_KEY_LENGTH
@@ -17,6 +16,7 @@ from app.chat.crypto.crypto_utils import (
     create_shared_key_X3DH_guest,
     generate_DH,
 )
+from app.user.user_functions import resolve_user_state
 from app.database.db_controller import DatabaseController
 import binascii
 
@@ -85,6 +85,10 @@ def test_initialize_ratchets(mocker):
         "app.database.db_controller.DatabaseController"
         ".load_chat_init_variables",
         return_value=(exp_shared_key, True),  # Value here changes !!
+    )
+    mocker.patch(
+        "app.database.db_controller.DatabaseController.save_ratchets",
+        return_value=...,
     )
     alice_chat.init_ratchets()
     alice_r_set = alice_chat.get_ratchet_set()
@@ -396,7 +400,7 @@ def test_x3dh_double_ratchet_integration(mocker):
     )
 
     """
-    We did not defined who's turn it is. Thats because
+    NOTE: We did not defined who's turn it is. Thats because
     such information should be retrieved from the database!!!
     """
     alice_crypto_con = CryptoController(
@@ -436,7 +440,7 @@ def test_x3dh_double_ratchet_integration(mocker):
 
 
 @pytest.mark.asyncio
-async def test_continue_conversation(mocker):
+async def test_continue_conversation():
     """
     Scenario: Alice had send to Bob friend request
     Both parties performed x3dh and are possessing shared secret.
@@ -449,8 +453,161 @@ async def test_continue_conversation(mocker):
     if os.path.exists(TEST_DB_PATH):
         os.remove(TEST_DB_PATH)
 
+    db_controller = DatabaseController(DB_PATH=TEST_DB_PATH)
     ALICE_LOGIN = "alice"
     BOB_LOGIN = "bob"
 
-    alice_app_controller = AppController(db_path=TEST_DB_PATH)
-    bob_app_controller = AppController(db_path=TEST_DB_PATH)
+    alice_state = UserState(ALICE_LOGIN)
+    bob_state = UserState(BOB_LOGIN)
+
+    db_controller.create_user(alice_state)
+    db_controller.create_user(bob_state)
+
+    resolve_user_state(alice_state, TEST_DB_PATH)
+    resolve_user_state(bob_state, TEST_DB_PATH)
+
+    alice_ephem = generate_DH()
+    bob_otk = generate_DH()
+
+    alice_cryp = CryptoController(alice_state, BOB_LOGIN, DB_PATH=TEST_DB_PATH)
+    bob_cryp = CryptoController(bob_state, ALICE_LOGIN, DB_PATH=TEST_DB_PATH)
+
+    db_controller.add_contact(
+        alice_state,
+        BOB_LOGIN,
+        create_b64_from_public_key(bob_state.id_key.public_key()).decode(
+            PREFFERED_ENCODING
+        ),
+        binascii.b2a_base64(shared_key).decode(PREFFERED_ENCODING),
+        contact_signed_pre_key=create_b64_from_public_key(
+            bob_state.signed_pre_key.public_key()
+        ).decode(PREFFERED_ENCODING),
+        my_ephemeral_key=create_b64_from_private_key(alice_ephem).decode(
+            PREFFERED_ENCODING
+        ),
+        contact_otk_key=create_b64_from_public_key(
+            bob_otk.public_key()
+        ).decode(PREFFERED_ENCODING),
+    )
+
+    db_controller.add_contact(
+        bob_state,
+        ALICE_LOGIN,
+        create_b64_from_public_key(alice_state.id_key.public_key()).decode(
+            PREFFERED_ENCODING
+        ),
+        binascii.b2a_base64(shared_key).decode(PREFFERED_ENCODING),
+        contact_ephemeral_key=create_b64_from_public_key(
+            alice_ephem.public_key()
+        ).decode(PREFFERED_ENCODING),
+        my_otk_key=create_b64_from_private_key(bob_otk).decode(
+            PREFFERED_ENCODING
+        ),
+    )
+
+    alice_cryp.init_ratchets(
+        opt_public_key=bob_state.signed_pre_key.public_key()
+    )
+    bob_cryp.init_ratchets(opt_private_key=bob_state.signed_pre_key)
+
+    old_alice_rset = alice_cryp.get_ratchet_set()
+    old_bob_rset = bob_cryp.get_ratchet_set()
+
+    # we delete last session
+    del alice_cryp
+    del bob_cryp
+    del alice_state
+    del bob_state
+
+    alice_state = UserState(ALICE_LOGIN)
+    bob_state = UserState(BOB_LOGIN)
+
+    resolve_user_state(alice_state, TEST_DB_PATH)
+    resolve_user_state(bob_state, TEST_DB_PATH)
+
+    alice_cryp = CryptoController(alice_state, BOB_LOGIN, DB_PATH=TEST_DB_PATH)
+    bob_cryp = CryptoController(bob_state, ALICE_LOGIN, DB_PATH=TEST_DB_PATH)
+
+    # sanity checks
+    assert db_controller.ratchets_present(
+        alice_state, BOB_LOGIN
+    ), "alice ratchets not established"
+    assert db_controller.ratchets_present(
+        bob_state, ALICE_LOGIN
+    ), "bob ratchets not established"
+
+    with pytest.raises(AssertionError):
+        alice_cryp.init_ratchets(
+            opt_public_key=bob_state.signed_pre_key.public_key()
+        )
+
+    with pytest.raises(AssertionError):
+        bob_cryp.init_ratchets(opt_private_key=bob_state.signed_pre_key)
+
+    alice_cryp.init_ratchets()
+    bob_cryp.init_ratchets()
+
+    new_alice_rset = alice_cryp.get_ratchet_set()
+    new_bob_rset = bob_cryp.get_ratchet_set()
+
+    # we now check if ratchet sets are equal
+    assert (
+        new_alice_rset.recv_ratchet.get_snapshot()
+        == old_alice_rset.recv_ratchet.get_snapshot()
+    )
+    assert (
+        new_alice_rset.root_ratchet.get_snapshot()
+        == old_alice_rset.root_ratchet.get_snapshot()
+    )
+    assert (
+        new_alice_rset.send_ratchet.get_snapshot()
+        == old_alice_rset.send_ratchet.get_snapshot()
+    )
+
+    assert (
+        new_bob_rset.recv_ratchet.get_snapshot()
+        == old_bob_rset.recv_ratchet.get_snapshot()
+    )
+    assert (
+        new_bob_rset.root_ratchet.get_snapshot()
+        == old_bob_rset.root_ratchet.get_snapshot()
+    )
+    assert (
+        new_bob_rset.send_ratchet.get_snapshot()
+        == old_bob_rset.send_ratchet.get_snapshot()
+    )
+
+    assert alice_cryp.my_turn is False, "This values should change!!!"
+    assert bob_cryp.my_turn is True, "This value should change"
+
+    # -- now everything should be ready for conversation ---
+
+    alice_msg = (
+        "According to all known laws of aviation"
+        ", there is no way a bee should be able to fly."
+    )
+
+    enc_msg = alice_cryp.encrypt_to_json_message(alice_msg)
+    digested = bob_cryp.decrypt_json_message(enc_msg)
+
+    assert alice_msg == digested, "Messages not encrypted correctly"
+
+    bob_msg = (
+        "Its wings are too small to get" "its fat little body off the ground."
+    )
+
+    enc_msg = bob_cryp.encrypt_to_json_message(bob_msg)
+    digested = alice_cryp.decrypt_json_message(enc_msg)
+
+    assert bob_msg == digested, "Messages not encrypted correctly"
+
+    bob_msg = (
+        "The bee, of course, flies anyway"
+        "because bees don't care"
+        "what humans think is impossible."
+    )
+
+    enc_msg = bob_cryp.encrypt_to_json_message(bob_msg)
+    digested = alice_cryp.decrypt_json_message(enc_msg)
+
+    assert bob_msg == digested, "Messages not encrypted correctly"
