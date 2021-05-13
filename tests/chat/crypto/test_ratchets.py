@@ -71,6 +71,11 @@ def test_initialize_ratchets(mocker):
         "app.database.db_controller.DatabaseController.load_ratchets",
         return_value=test_ratchet_set,
     )
+
+    mocker.patch(
+        "app.database.db_controller.DatabaseController.load_chat_init_variables",
+        return_value=(None, True),
+    )
     alice_clone_chat.init_ratchets()
     alice_clone_r_set = alice_clone_chat.get_ratchet_set()
 
