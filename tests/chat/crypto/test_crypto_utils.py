@@ -57,11 +57,12 @@ def test_diffie_hellman_exchange():
 
 
 def test_assigned_starter_keys(mocker):
-    """Scenrario: Alice wants to meet Bob
+    """Scenario: Alice wants to meet Bob
     in the app.
 
     Application performs a X3DH protocol to exchange
-    shared initial secret
+    shared initial secret. Ephemeral key and otk
+    are hardcoded
     """
     # alice has send to bob a friend request
     alice_state = UserState("alice")
@@ -214,7 +215,9 @@ async def test_full_x3dh(mocker):
     bob_otk_keys = []
 
     for k in bob_app_controller.db_controller.get_user_otk(bob_state):
-        kk = create_b64_from_public_key(create_private_key_from_b64(k).public_key())
+        kk = create_b64_from_public_key(
+            create_private_key_from_b64(k).public_key()
+        )
         bob_otk_keys.append(kk)
 
     async def mocked_server_registration():
@@ -247,8 +250,12 @@ async def test_full_x3dh(mocker):
     resolve_user_state(bob_app_controller.user_state, TEST_DB_PATH)
     resolve_user_state(alice_app_controller.user_state, TEST_DB_PATH)
 
-    await bob_app_controller.api_controller.create_user()
+    mocker.patch(
+        "app.app_controller.AppController.init_ratchet_configuration",
+        return_value=...,
+    )
 
+    await bob_app_controller.api_controller.create_user()
 
     ALICE_OTK_INDEX = 2
 
@@ -293,6 +300,11 @@ async def test_full_x3dh(mocker):
     mocker.patch(
         "app.api.api_controller.ApiController.send_friend_request",
         side_effect=mocked_friend_request,
+    )
+
+    mocker.patch(
+        "app.api.api_controller.ApiController.init_ratchet_configuration",
+        return_value=...,
     )
 
     await alice_app_controller.add_contact(BOB_LOGIN)

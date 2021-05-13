@@ -5,7 +5,7 @@ from app.chat.crypto.crypto_utils import (
     generate_DH,
 )
 from app.user.user_state import UserState
-from app.app_controller import AppController, ContactNotFoundException
+from app.app_controller import AppController
 import pytest
 
 TEST_DB_PATH = "test_user.db"
@@ -51,16 +51,16 @@ def init_mocker(mocker):
         }
 
     def mocked_x3dh(*args, **kwargs):
-        assert not None in args, "not initialized key passed for exchange!!"
+        assert None not in args, "not initialized key passed for exchange!!"
         assert (
-            not None in kwargs.values()
+            None not in kwargs.values()
         ), "not initialized key passed for exchange!!"
         assert len(args) + len(kwargs) == 5
 
     def mocked_db_add_contact(*args, **kwargs):
-        assert not None in args, "not initialized key passed for exchange!!"
+        assert None not in args, "not initialized key passed for exchange!!"
         assert (
-            not None in kwargs.values()
+            None not in kwargs.values()
         ), "not initialized key passed for exchange!!"
         assert len(args) + len(kwargs) == 7
 
@@ -94,6 +94,11 @@ def init_mocker(mocker):
         side_effect=mocked_db_add_contact,
     )
 
+    mocker.patch(
+        "app.app_controller.AppController.init_ratchet_configuration",
+        return_value=...,
+    )
+
 
 @pytest.fixture
 def app_cont_prep(mocker):
@@ -112,6 +117,7 @@ def app_cont_prep(mocker):
         app_controller.db_controller,
         init_session=False,
         register_user=False,
+        db_path=TEST_DB_PATH,
     )
     return app_controller
 
@@ -137,5 +143,6 @@ async def test_should_raise_when_friend_not_registered(mocker, app_cont_prep):
         side_effect=mocked_con_info,
     )
 
-    with pytest.raises(ContactNotFoundException):
-        await app_cont_prep.add_contact("bob")
+    assert (
+        await app_cont_prep.add_contact("bob") is False
+    ), "Adding contact was when it should not be"
