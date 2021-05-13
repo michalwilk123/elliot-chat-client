@@ -157,7 +157,7 @@ class DatabaseController:
             )
 
         """
-        The additional parameters can 
+        The additional parameters can
         be added in only two ways:
 
             * Adding the establisher (aka this
@@ -423,7 +423,7 @@ class DatabaseController:
     def load_ratchets(self, user_state: UserState, contact: str) -> RatchetSet:
         if not self.ratchets_present(user_state, contact):
             raise DatabaseControllerException(
-                "You tried to load not exitsing ratchets!! "
+                "You tried to load not exitnot sing ratchets!! "
                 "Aborting immediately"
             )
 
@@ -452,9 +452,15 @@ class DatabaseController:
 
         cur.execute(
             "UPDATE CONTACTS "
-            "SET dh_ratchet=?, send_ratchet=?, recv_ratchet=?, root_ratchet=?, my_turn=?"
+            "SET dh_ratchet=?, send_ratchet=?, recv_ratchet=?, "
+            "root_ratchet=?, my_turn=?"
             "WHERE owner=? AND login=?",
-            (*ratchet_set.get_tuple(), int(my_turn), user_state.login, contact),
+            (
+                *ratchet_set.get_tuple(),
+                int(my_turn),
+                user_state.login,
+                contact,
+            ),
         )
         self.connection.commit()
         cur.close()

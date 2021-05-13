@@ -134,15 +134,14 @@ class AppController:
 
     async def init_waitroom(self):
         ...
-    
-    def init_ratchet_configuration(self, contact:str, contact_spk:X25519PublicKey):
+
+    def init_ratchet_configuration(
+        self, contact: str, contact_spk: X25519PublicKey
+    ):
         crypto_controller = CryptoController(
             self.user_state, contact, DB_PATH=self._db_path
         )
-        crypto_controller.init_ratchets(
-            opt_public_key=contact_spk
-        )
-        
+        crypto_controller.init_ratchets(opt_public_key=contact_spk)
 
     async def add_contact(self, contact: str) -> bool:
         if not await self.api_controller.check_contact(contact):
@@ -220,7 +219,10 @@ class AppController:
         )
 
         # initializing ratchets
-        self.init_ratchet_configuration(contact, create_public_key_from_b64(contact_info["public_signed_pre_key"]))
+        self.init_ratchet_configuration(
+            contact,
+            create_public_key_from_b64(contact_info["public_signed_pre_key"]),
+        )
 
-        print(f"You have send {contact} an invite")
+        print(f"You had send {contact} an invite")
         return True

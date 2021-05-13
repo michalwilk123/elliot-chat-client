@@ -153,11 +153,6 @@ class ApiController:
         ):
             raise ApiControllerException("All user keys must be present!")
 
-        print(
-            "BOGDAN OTK KEY: ",
-            create_b64_from_public_key(curr_otk.public_key()),
-        )
-
         shared_key = create_shared_key_X3DH_establisher(
             self.user_state.id_key,
             self.user_state.signed_pre_key,
@@ -180,7 +175,7 @@ class ApiController:
 
         return new_otk_b64
 
-    def init_ratchet_configuration(self, login:str):
+    def init_ratchet_configuration(self, login: str):
         crypto_controller = CryptoController(
             self.user_state,
             login,
@@ -195,6 +190,8 @@ class ApiController:
             self._url + ApiRoutes.CONTACT_OPER, json=invite
         ) as resp:
             result = await resp.json()
+            if not result["success"]:
+                print(result["message"])
 
     async def resolve_new_contacts(self):
         params = {

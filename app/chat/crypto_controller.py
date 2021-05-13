@@ -68,7 +68,7 @@ class CryptoController:
             )
             assert (
                 opt_private_key is None and opt_public_key is None
-            ), "You should not preemptively turn when you got initialized ratchets!"
+            ), "You should not preemptively turn when you initialized"
         else:
             # this will run for the first time the users are connected
             shared_key, my_turn = db_controller.load_chat_init_variables(
@@ -79,7 +79,11 @@ class CryptoController:
             else:
                 self.my_turn = my_turn
 
-            self.initialize_symmertic_ratchets(shared_key, opt_public_key=opt_public_key, opt_private_key=opt_private_key)
+            self.initialize_symmertic_ratchets(
+                shared_key,
+                opt_public_key=opt_public_key,
+                opt_private_key=opt_private_key,
+            )
 
     def get_ratchet_set(self) -> RatchetSet:
         return self.ratchet_set
@@ -100,7 +104,9 @@ class CryptoController:
         r_set = RatchetSet()
         r_set.root_ratchet = InnerRatchet(shared_key)
 
-        assert self.my_turn is not None, "The order of intitialization must be resolved"
+        assert (
+            self.my_turn is not None
+        ), "The order of intitialization must be resolved"
 
         if self.my_turn:
             """
@@ -168,7 +174,9 @@ class CryptoController:
         if public_key is not None:
             self.rotate_dh_ratchet(public_key)
         else:
-            assert public_key is None, "Passed the public key without any reason"
+            assert (
+                public_key is None
+            ), "Passed the public key without any reason"
 
         root_key, chain_key = self.ratchet_set.recv_ratchet.turn()
 

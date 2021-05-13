@@ -1,4 +1,3 @@
-from app.api.response_type import ResponseType
 from app.app_controller import AppController
 from app.user.user_state import UserState
 from secrets import token_bytes
@@ -83,7 +82,8 @@ def test_initialize_ratchets(mocker):
         return_value=False,  # Value here changes !!
     )
     mocker.patch(
-        "app.database.db_controller.DatabaseController.load_chat_init_variables",
+        "app.database.db_controller.DatabaseController"
+        ".load_chat_init_variables",
         return_value=(exp_shared_key, True),  # Value here changes !!
     )
     alice_chat.init_ratchets()
@@ -176,7 +176,8 @@ def test_send_recieve_alice_first(mocker):
     )
 
     mocker.patch(
-        "app.database.db_controller.DatabaseController.load_chat_init_variables",
+        "app.database.db_controller.DatabaseController"
+        ".load_chat_init_variables",
         return_value=(exp_shared_key, True),
     )
 
@@ -241,7 +242,8 @@ def test_send_recieve_alice_second(mocker):
     )
 
     mocker.patch(
-        "app.database.db_controller.DatabaseController.load_chat_init_variables",
+        "app.database.db_controller.DatabaseController"
+        ".load_chat_init_variables",
         return_value=(exp_shared_key, True),
     )
 
@@ -289,7 +291,8 @@ def test_should_desynchronize_when_bad_initiator(mocker):
     )
 
     mocker.patch(
-        "app.database.db_controller.DatabaseController.load_chat_init_variables",
+        "app.database.db_controller.DatabaseController."
+        "load_chat_init_variables",
         return_value=(exp_shared_key, True),
     )
 
@@ -396,16 +399,21 @@ def test_x3dh_double_ratchet_integration(mocker):
     We did not defined who's turn it is. Thats because
     such information should be retrieved from the database!!!
     """
-    alice_crypto_con = CryptoController(alice_state, BOB_LOGIN, DB_PATH=TEST_DB_PATH)
-    bob_crypto_con = CryptoController(bob_state, ALICE_LOGIN, DB_PATH=TEST_DB_PATH)
+    alice_crypto_con = CryptoController(
+        alice_state, BOB_LOGIN, DB_PATH=TEST_DB_PATH
+    )
+    bob_crypto_con = CryptoController(
+        bob_state, ALICE_LOGIN, DB_PATH=TEST_DB_PATH
+    )
 
-
-    alice_crypto_con.init_ratchets(opt_public_key=bob_state.signed_pre_key.public_key())
+    alice_crypto_con.init_ratchets(
+        opt_public_key=bob_state.signed_pre_key.public_key()
+    )
     bob_crypto_con.init_ratchets(opt_private_key=bob_state.signed_pre_key)
 
     # more sanity checks
-    assert alice_crypto_con.my_turn == False, "This values should change!!!"
-    assert bob_crypto_con.my_turn == True, "This value should change"
+    assert alice_crypto_con.my_turn is False, "This values should change!!!"
+    assert bob_crypto_con.my_turn is True, "This value should change"
 
     alice_msg = "L’homme est condamné à être libre."
     message_for_bob = alice_crypto_con.encrypt_to_json_message(alice_msg)
@@ -425,7 +433,6 @@ def test_x3dh_double_ratchet_integration(mocker):
 
     # if this passes then ratchets are not moving when they should
     assert bob_message == digested_msg, "Response failed to decrypt"
-
 
 
 @pytest.mark.asyncio
