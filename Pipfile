@@ -9,12 +9,14 @@ simple-term-menu = "*"
 aioconsole = "*"
 cryptography = "*"
 aiohttp = "*"
+pycodestyle = "==2.6.0"
 
 [dev-packages]
 pytest-mock = "*"
 pytest-asyncio = "*"
 pytest = "*"
 black = "*"
+pycodestyle = "==2.6.0"
 
 [requires]
 python_version = "3.9"
