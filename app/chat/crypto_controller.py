@@ -48,6 +48,7 @@ class CryptoController:
         self.my_turn = my_turn
         self.contact = contact
         self.db_path = DB_PATH
+        self.db_controller = None
 
     def init_ratchets(
         self,
@@ -60,18 +61,22 @@ class CryptoController:
         for later use
         """
 
-        db_controller = DatabaseController(DB_PATH=self.db_path)
+        self.db_controller = DatabaseController(DB_PATH=self.db_path)
 
-        if db_controller.ratchets_present(self.user_state, self.contact):
-            self.ratchet_set = db_controller.load_ratchets(
-                self.user_state, self.contact
-            )
+        if self.db_controller.ratchets_present(self.user_state, self.contact):
             assert (
                 opt_private_key is None and opt_public_key is None
-            ), "You should not preemptively turn when you initialized"
+            ), "You should not preemptively turn when you initialized ratchets"
+            self.ratchet_set = self.db_controller.load_ratchets(
+                self.user_state, self.contact
+            )
+            # we need get the information who's now needs to turn his ratchets
+            _, self.my_turn = self.db_controller.load_chat_init_variables(
+                self.user_state, self.contact
+            )
         else:
             # this will run for the first time the users are connected
-            shared_key, my_turn = db_controller.load_chat_init_variables(
+            shared_key, my_turn = self.db_controller.load_chat_init_variables(
                 self.user_state, self.contact
             )
             if self.my_turn is not None:
@@ -84,8 +89,15 @@ class CryptoController:
                 opt_public_key=opt_public_key,
                 opt_private_key=opt_private_key,
             )
+            self.db_controller.save_ratchets(
+                self.user_state,
+                self.contact,
+                self.get_ratchet_set(),
+                self.my_turn,
+            )
 
     def get_ratchet_set(self) -> RatchetSet:
+        assert self.ratchet_set is not None, "This must be initialized!"
         return self.ratchet_set
 
     def initialize_symmertic_ratchets(
@@ -224,6 +236,18 @@ class CryptoController:
                 ),
             },
         }
+
+        assert (
+            self.my_turn is not None
+        ), "You should crearly define who's turn is present"
+        if self.db_controller is not None:
+            self.db_controller.save_ratchets(
+                self.user_state,
+                self.contact,
+                self.get_ratchet_set(),
+                self.my_turn,
+            )
+
         return msg_to_send
 
     def decrypt_json_message(self, message: dict) -> str:
@@ -243,6 +267,16 @@ class CryptoController:
                 if self.my_turn
                 else None,
             )
+            assert (
+                self.my_turn is not None
+            ), "You should crearly define who's turn is present"
+            if self.db_controller is not None:
+                self.db_controller.save_ratchets(
+                    self.user_state,
+                    self.contact,
+                    self.get_ratchet_set(),
+                    self.my_turn,
+                )
             return decr_msg.decode(PREFFERED_ENCODING)
         else:
             raise NotImplementedError(
